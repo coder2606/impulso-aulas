@@ -1,0 +1,16 @@
+/**
+ * Contrato das aulas da Impulso.
+ *
+ * TypeScript puro, sem uma unica dependencia de execucao. E essa ausencia que
+ * lhe permite correr nos tres sitios onde e preciso: no telemovel sobre Hermes,
+ * no servidor da Next, e no browser de quem monta a aula.
+ */
+
+/**
+ * Versao do formato de `aulas.conteudo`.
+ * Sobe quando o formato deixar de ser compativel com o anterior, e nao quando
+ * se acrescenta um tipo de bloco novo.
+ */
+export function versaoDoContrato(): number {
+  return 1;
+}
