@@ -26,12 +26,16 @@ export type {
   BlocoQuiz,
   CampoFormulario,
   BlocoFormulario,
+  NomeDeFerramenta,
+  BlocoFerramenta,
   BlocoRecompensa,
   Bloco,
   ConteudoAula,
   ErroValidacao,
   ResultadoValidacao,
 } from "./blocos";
+
+export { NOMES_DE_FERRAMENTA } from "./blocos";
 
 export { validarAula, blocosObrigatorios, mediaPorChave } from "./validar";
 

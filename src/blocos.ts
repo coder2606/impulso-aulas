@@ -117,6 +117,37 @@ export type BlocoFormulario = {
   campos: CampoFormulario[];
 };
 
+/**
+ * As ferramentas nativas que uma aula pode invocar.
+ *
+ * Lista fechada de propósito. O construtor mostra-a como escolha e o validador
+ * recusa tudo o que não esteja aqui, para nunca se publicar uma aula que chama
+ * uma ferramenta inexistente. Com texto livre, o erro só aparecia no telemóvel
+ * de um jovem, em forma de ecrã em branco.
+ */
+export const NOMES_DE_FERRAMENTA = [
+  'calc-custo-preco',
+  'caderno-contas',
+  'calc-orcamento',
+  'calc-desconto',
+  'calc-credito',
+  'catalogo-ideias',
+  'plano-pdf',
+  'vitrine',
+] as const;
+
+export type NomeDeFerramenta = (typeof NOMES_DE_FERRAMENTA)[number];
+
+export type BlocoFerramenta = {
+  id: string;
+  tipo: 'ferramenta';
+  ferramenta: NomeDeFerramenta;
+  titulo: string;
+  instrucao?: string;
+  /** Valores com que a ferramenta abre, para o jovem substituir pelos dele. */
+  parametros?: Record<string, string | number>;
+};
+
 export type BlocoRecompensa = {
   id: string;
   tipo: 'recompensa';
@@ -135,6 +166,7 @@ export type Bloco =
   | BlocoAutoavaliacao
   | BlocoQuiz
   | BlocoFormulario
+  | BlocoFerramenta
   | BlocoRecompensa;
 
 export type ConteudoAula = {

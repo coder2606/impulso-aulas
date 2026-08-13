@@ -13,10 +13,11 @@ import type {
   ResultadoValidacao,
 } from './blocos';
 
+import { NOMES_DE_FERRAMENTA } from './blocos';
+
 /**
- * Tipos previstos pelo currículo completo. Só os quatro primeiros têm desenhador
- * nesta fase; os restantes são recusados pelo validador até serem implementados,
- * para não haver conteúdo publicado que o leitor não sabe mostrar.
+ * Tipos previstos pelo currículo completo. Um tipo que não esteja nesta lista é
+ * recusado, para não haver conteúdo publicado que o leitor não sabe mostrar.
  */
 const TIPOS_SUPORTADOS = [
   'video',
@@ -29,6 +30,7 @@ const TIPOS_SUPORTADOS = [
   'autoavaliacao',
   'quiz',
   'formulario',
+  'ferramenta',
   'recompensa',
 ] as const;
 
@@ -348,6 +350,46 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
         }
       });
     });
+    return;
+  }
+
+  if (b.tipo === 'ferramenta') {
+    if (!textoNaoVazio(b.titulo)) erros.push({ caminho: `${c}.titulo`, mensagem: 'titulo em falta' });
+
+    if (typeof b.ferramenta !== 'string' || !(NOMES_DE_FERRAMENTA as readonly string[]).includes(b.ferramenta)) {
+      erros.push({
+        caminho: `${c}.ferramenta`,
+        mensagem: `ferramenta desconhecida: ${String(b.ferramenta)}. As disponíveis são ${NOMES_DE_FERRAMENTA.join(', ')}`,
+      });
+    }
+
+    if (b.instrucao !== undefined && !textoNaoVazio(b.instrucao)) {
+      erros.push({ caminho: `${c}.instrucao`, mensagem: 'se a instrução existir, não pode ser vazia' });
+    }
+
+    if (b.parametros !== undefined) {
+      if (!eObjecto(b.parametros)) {
+        erros.push({ caminho: `${c}.parametros`, mensagem: 'parametros tem de ser um objecto' });
+      } else {
+        for (const [chave, valor] of Object.entries(b.parametros)) {
+          if (typeof valor !== 'string' && typeof valor !== 'number') {
+            erros.push({
+              caminho: `${c}.parametros.${chave}`,
+              mensagem: 'cada parâmetro tem de ser texto ou número',
+            });
+          }
+        }
+      }
+    }
+
+    // A base de dados só sabe verificar respostas submetidas, e uma ferramenta
+    // não submete nada. Deixar travar aqui daria sessões impossíveis de fechar.
+    if (b.obrigatorio_para_concluir !== undefined) {
+      erros.push({
+        caminho: `${c}.obrigatorio_para_concluir`,
+        mensagem: 'a ferramenta não pode travar a conclusão. Use um formulário ou uma lista de verificação',
+      });
+    }
     return;
   }
 

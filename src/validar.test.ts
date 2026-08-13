@@ -1,6 +1,6 @@
 // Importa do que o pacote expõe, e não dos ficheiros por dentro: assim os
 // testes provam também que o pacote entrega o que promete.
-import { validarAula, blocosObrigatorios, mediaPorChave } from './index';
+import { validarAula, blocosObrigatorios, mediaPorChave, NOMES_DE_FERRAMENTA } from './index';
 
 const AULA_VALIDA = {
   versao: 1,
@@ -423,5 +423,77 @@ describe('bloco autoavaliacao', () => {
     });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.erros[0].caminho).toContain('opcoes');
+  });
+});
+
+describe('ferramenta', () => {
+  const FERRAMENTA = {
+    id: 'b1',
+    tipo: 'ferramenta',
+    ferramenta: 'calc-custo-preco',
+    titulo: 'Calcula o teu preço',
+  };
+
+  it('aceita uma ferramenta da lista', () => {
+    expect(validarAula({ ...AULA_VALIDA, blocos: [FERRAMENTA] }).ok).toBe(true);
+  });
+
+  it('aceita instrução e parâmetros', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      blocos: [
+        {
+          ...FERRAMENTA,
+          instrucao: 'Põe os números do teu negócio',
+          parametros: { custo_directo: 450, moeda: 'MZN' },
+        },
+      ],
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejeita uma ferramenta que não existe', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      blocos: [{ ...FERRAMENTA, ferramenta: 'calc-inventada' }],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.erros[0].caminho).toBe('blocos[0].ferramenta');
+      expect(r.erros[0].mensagem).toContain('calc-inventada');
+    }
+  });
+
+  it('rejeita ferramenta em falta', () => {
+    const r = validarAula({ ...AULA_VALIDA, blocos: [{ id: 'b1', tipo: 'ferramenta', titulo: 'Isto' }] });
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejeita titulo vazio', () => {
+    const r = validarAula({ ...AULA_VALIDA, blocos: [{ ...FERRAMENTA, titulo: '  ' }] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros.some((e) => e.caminho === 'blocos[0].titulo')).toBe(true);
+  });
+
+  it('rejeita parâmetros que não sejam texto nem número', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      blocos: [{ ...FERRAMENTA, parametros: { mau: { aninhado: true } } }],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros.some((e) => e.caminho === 'blocos[0].parametros.mau')).toBe(true);
+  });
+
+  it('rejeita a ferramenta como actividade obrigatória', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      blocos: [{ ...FERRAMENTA, obrigatorio_para_concluir: true }],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].mensagem).toContain('formulário');
+  });
+
+  it('a lista tem os oito nomes', () => {
+    expect(NOMES_DE_FERRAMENTA).toHaveLength(8);
   });
 });
