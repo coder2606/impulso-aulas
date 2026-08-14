@@ -24,6 +24,7 @@
   "sideEffects": false,
   "engines": { "node": ">=20.9.0" },
   "scripts": {
+    "prepare": "tsup",
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
