@@ -39,6 +39,9 @@ export { NOMES_DE_FERRAMENTA } from "./blocos";
 
 export { validarAula, blocosObrigatorios, mediaPorChave } from "./validar";
 
+export type { PedacoNarravel } from "./narracao";
+export { pedacosNarraveis, definirNarracao } from "./narracao";
+
 /**
  * Versao do formato de `aulas.conteudo`.
  * Sobe quando o formato deixar de ser compativel com o anterior, e nao quando

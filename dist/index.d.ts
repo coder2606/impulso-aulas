@@ -227,6 +227,38 @@ declare function blocosObrigatorios(aula: ConteudoAula): string[];
 declare function mediaPorChave(aula: ConteudoAula): Map<string, MediaRef>;
 
 /**
+ * Onde e que uma aula leva voz.
+ *
+ * Vive no contrato, e nao no guiao que grava nem no construtor do dashboard,
+ * porque os dois precisam da mesma resposta: quais sao os pedacos, por que
+ * ordem se ouvem, e com que nome fica cada ficheiro. Com duas copias desta
+ * lista, um clipe gravado pelo guiao deixava de ser encontrado pelo painel na
+ * primeira vez que alguem mexesse num dos lados.
+ */
+
+type PedacoNarravel = {
+    /** O nome que o ficheiro deve ter, derivado de onde o pedaco vive. */
+    chave: string;
+    /** Onde vive, escrito para uma pessoa: «Pergunta 2, resposta B». */
+    rotulo: string;
+    /** O que ha para dizer em voz alta. */
+    texto: string;
+    /** A chave ja atribuida, quando este pedaco ja tem audio. */
+    narracao?: string;
+};
+/** Tudo o que numa aula pode ser lido em voz alta, pela ordem em que se ouve. */
+declare function pedacosNarraveis(aula: ConteudoAula): PedacoNarravel[];
+/**
+ * Prende, ou solta, o audio de um pedaco.
+ *
+ * Encontra o pedaco pela chave, que e unica dentro de uma aula porque vem do id
+ * do bloco e do que la esta dentro. Devolve uma aula nova: quem chama isto e
+ * quase sempre um ecra a reagir a um clique, e mudar o objecto por baixo dele
+ * daria um ecra que nao se redesenha.
+ */
+declare function definirNarracao(aula: ConteudoAula, chave: string, valor: string | undefined): ConteudoAula;
+
+/**
  * Contrato das aulas da Impulso.
  *
  * TypeScript puro, sem uma unica dependencia de execucao. E essa ausencia que
@@ -241,4 +273,4 @@ declare function mediaPorChave(aula: ConteudoAula): Map<string, MediaRef>;
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type ConteudoAula, type ErroValidacao, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, type NomeDeFerramenta, type OpcaoQuiz, type Passo, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoValidacao, type SlideAudio, blocosObrigatorios, mediaPorChave, validarAula, versaoDoContrato };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type ConteudoAula, type ErroValidacao, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, type NomeDeFerramenta, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoValidacao, type SlideAudio, blocosObrigatorios, definirNarracao, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato };

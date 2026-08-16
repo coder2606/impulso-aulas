@@ -417,6 +417,85 @@ function mediaPorChave(aula) {
   return new Map(aula.media.map((m) => [m.chave, m]));
 }
 
+// src/narracao.ts
+function textoDoPasso(p) {
+  return `${p.titulo}. ${p.texto}`;
+}
+function pedacosDoBloco(bloco) {
+  if (bloco.tipo === "passos") {
+    return bloco.passos.map((p, i) => ({
+      chave: `${bloco.id}-${p.id}.mp3`,
+      rotulo: `Passo ${i + 1}, ${p.titulo}`,
+      texto: textoDoPasso(p),
+      narracao: p.narracao
+    }));
+  }
+  if (bloco.tipo !== "quiz" && bloco.tipo !== "autoavaliacao") return [];
+  const saida = [];
+  bloco.perguntas.forEach((p, i) => {
+    saida.push({
+      chave: `${bloco.id}-${p.id}.mp3`,
+      rotulo: `Pergunta ${i + 1}`,
+      texto: p.enunciado,
+      narracao: p.narracao
+    });
+    for (const o of p.opcoes) {
+      saida.push({
+        chave: `${bloco.id}-${p.id}-${o.id}.mp3`,
+        rotulo: `Pergunta ${i + 1}, resposta ${o.id.toUpperCase()}`,
+        texto: o.texto,
+        narracao: o.narracao
+      });
+    }
+  });
+  if (bloco.instrucao) {
+    saida.push({
+      chave: `${bloco.id}-instrucao.mp3`,
+      rotulo: "Instru\xE7\xE3o, ouve-se no fim de cada pergunta",
+      texto: bloco.instrucao,
+      narracao: bloco.narracao_instrucao
+    });
+  }
+  return saida;
+}
+function pedacosNarraveis(aula) {
+  return aula.blocos.flatMap(pedacosDoBloco);
+}
+function definirNarracao(aula, chave, valor) {
+  const blocos = aula.blocos.map((bloco) => {
+    if (bloco.tipo === "passos") {
+      if (!bloco.passos.some((p) => `${bloco.id}-${p.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        passos: bloco.passos.map(
+          (p) => `${bloco.id}-${p.id}.mp3` === chave ? { ...p, narracao: valor } : p
+        )
+      };
+    }
+    if (bloco.tipo !== "quiz" && bloco.tipo !== "autoavaliacao") return bloco;
+    if (chave === `${bloco.id}-instrucao.mp3`) {
+      return { ...bloco, narracao_instrucao: valor };
+    }
+    let mexeu = false;
+    const perguntas = bloco.perguntas.map((p) => {
+      if (`${bloco.id}-${p.id}.mp3` === chave) {
+        mexeu = true;
+        return { ...p, narracao: valor };
+      }
+      if (!p.opcoes.some((o) => `${bloco.id}-${p.id}-${o.id}.mp3` === chave)) return p;
+      mexeu = true;
+      return {
+        ...p,
+        opcoes: p.opcoes.map(
+          (o) => `${bloco.id}-${p.id}-${o.id}.mp3` === chave ? { ...o, narracao: valor } : o
+        )
+      };
+    });
+    return mexeu ? { ...bloco, perguntas } : bloco;
+  });
+  return { ...aula, blocos };
+}
+
 // src/index.ts
 function versaoDoContrato() {
   return 1;
@@ -424,7 +503,9 @@ function versaoDoContrato() {
 export {
   NOMES_DE_FERRAMENTA,
   blocosObrigatorios,
+  definirNarracao,
   mediaPorChave,
+  pedacosNarraveis,
   validarAula,
   versaoDoContrato
 };
