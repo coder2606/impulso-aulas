@@ -69,11 +69,20 @@ export type BlocoTabela = {
   linhas: string[][];
 };
 
+/**
+ * A `narracao` e uma chave da lista `media` da aula, tal como a `imagem`.
+ *
+ * Um clipe por pedaco, e nao um audio unico com marcas de tempo: assim quem
+ * escreve a aula nunca tem de anotar segundos, e trocar uma alternativa so
+ * obriga a regravar essa. O leitor toca os clipes em fila e acende a borda de
+ * quem estiver a ser narrado.
+ */
 export type PerguntaAutoavaliacao = {
   id: string;
   enunciado: string;
   imagem?: string;
-  opcoes: { id: string; texto: string; imagem?: string }[];
+  narracao?: string;
+  opcoes: { id: string; texto: string; imagem?: string; narracao?: string }[];
 };
 export type BlocoAutoavaliacao = {
   id: string;
@@ -83,11 +92,12 @@ export type BlocoAutoavaliacao = {
   obrigatorio_para_concluir?: boolean;
 };
 
-export type OpcaoQuiz = { id: string; texto: string; imagem?: string };
+export type OpcaoQuiz = { id: string; texto: string; imagem?: string; narracao?: string };
 export type PerguntaQuiz = {
   id: string;
   enunciado: string;
   imagem?: string;
+  narracao?: string;
   opcoes: OpcaoQuiz[];
   correcta: string;
   explicacao: string;

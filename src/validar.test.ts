@@ -497,3 +497,88 @@ describe('ferramenta', () => {
     expect(NOMES_DE_FERRAMENTA).toHaveLength(8);
   });
 });
+
+describe('narração', () => {
+  const MEDIA = [
+    ...AULA_VALIDA.media,
+    { chave: 'p1.mp3', url: 'https://exemplo.mz/p1.mp3', bytes: 21000 },
+    { chave: 'p1-a.mp3', url: 'https://exemplo.mz/p1-a.mp3', bytes: 9000 },
+  ];
+
+  const quiz = (narracaoPergunta?: string, narracaoOpcao?: string) => ({
+    id: 'b2',
+    tipo: 'quiz',
+    vidas: 3,
+    tempo_seg: 15,
+    xp_por_certa: 5,
+    perguntas: [
+      {
+        id: 'p1',
+        enunciado: 'O que é preciso para começar?',
+        narracao: narracaoPergunta,
+        opcoes: [
+          { id: 'a', texto: 'Muito dinheiro', narracao: narracaoOpcao },
+          { id: 'b', texto: 'Algo que já sabes fazer' },
+        ],
+        correcta: 'b',
+        explicacao: 'Começa-se pelo que já se sabe fazer.',
+      },
+    ],
+  });
+
+  const autoavaliacao = (narracaoPergunta?: string, narracaoOpcao?: string) => ({
+    id: 'b4',
+    tipo: 'autoavaliacao',
+    titulo: 'Três perguntas sobre ti',
+    perguntas: [
+      {
+        id: 'q1',
+        enunciado: 'Já vendeste alguma coisa?',
+        narracao: narracaoPergunta,
+        opcoes: [
+          { id: 'a', texto: 'Sim, várias vezes', narracao: narracaoOpcao },
+          { id: 'b', texto: 'Ainda não' },
+        ],
+      },
+    ],
+  });
+
+  it('é opcional: a aula de sempre continua válida sem narração nenhuma', () => {
+    expect(validarAula(AULA_VALIDA).ok).toBe(true);
+  });
+
+  it('aceita narração na pergunta e na opção quando as chaves existem em media', () => {
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [quiz('p1.mp3', 'p1-a.mp3')] });
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejeita narração de pergunta com chave que não está em media', () => {
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [quiz('nao-existe.mp3')] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.erros[0].caminho).toContain('perguntas[0].narracao');
+      expect(r.erros[0].mensagem).toContain('sem media correspondente');
+    }
+  });
+
+  it('rejeita narração de opção com chave que não está em media', () => {
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [quiz('p1.mp3', 'perdida.mp3')] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('opcoes[0].narracao');
+  });
+
+  it('vale o mesmo na autoavaliação', () => {
+    const bom = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [autoavaliacao('p1.mp3', 'p1-a.mp3')] });
+    expect(bom.ok).toBe(true);
+
+    const mau = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [autoavaliacao('fantasma.mp3')] });
+    expect(mau.ok).toBe(false);
+    if (!mau.ok) expect(mau.erros[0].caminho).toContain('perguntas[0].narracao');
+  });
+
+  it('rejeita narração de opção da autoavaliação com chave desconhecida', () => {
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [autoavaliacao('p1.mp3', 'fantasma.mp3')] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('opcoes[0].narracao');
+  });
+});

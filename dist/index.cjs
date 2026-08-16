@@ -85,6 +85,16 @@ function validarMedia(media, erros) {
   });
   return saida;
 }
+function validarNarracao(valor, caminho, chaves, erros) {
+  if (valor === void 0) return;
+  if (!textoNaoVazio(valor)) {
+    erros.push({ caminho, mensagem: "narracao tem de ser uma chave de media" });
+    return;
+  }
+  if (!chaves.has(valor)) {
+    erros.push({ caminho, mensagem: `chave sem media correspondente: ${valor}` });
+  }
+}
 function validarBloco(b, i, chaves, erros) {
   const c = `blocos[${i}]`;
   if (!eObjecto(b)) {
@@ -131,6 +141,7 @@ function validarBloco(b, i, chaves, erros) {
       if (!textoNaoVazio(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: "id da pergunta em falta" });
       if (!textoNaoVazio(p.enunciado)) erros.push({ caminho: `${cp}.enunciado`, mensagem: "enunciado em falta" });
       if (!textoNaoVazio(p.explicacao)) erros.push({ caminho: `${cp}.explicacao`, mensagem: "explicacao em falta" });
+      validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
       if (!Array.isArray(p.opcoes) || p.opcoes.length < 2) {
         erros.push({ caminho: `${cp}.opcoes`, mensagem: "cada pergunta tem de ter pelo menos duas op\xE7\xF5es" });
         return;
@@ -139,7 +150,9 @@ function validarBloco(b, i, chaves, erros) {
       p.opcoes.forEach((o, k) => {
         if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.texto)) {
           erros.push({ caminho: `${cp}.opcoes[${k}]`, mensagem: "op\xE7\xE3o precisa de id e texto" });
+          return;
         }
+        validarNarracao(o.narracao, `${cp}.opcoes[${k}].narracao`, chaves, erros);
       });
       if (!ids.includes(p.correcta)) {
         erros.push({ caminho: `${cp}.correcta`, mensagem: "a resposta correcta n\xE3o consta das op\xE7\xF5es" });
@@ -347,6 +360,7 @@ function validarBloco(b, i, chaves, erros) {
           mensagem: "a autoavalia\xE7\xE3o n\xE3o tem resposta certa. Se h\xE1 resposta certa, o bloco \xE9 um quiz"
         });
       }
+      validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
       if (!Array.isArray(p.opcoes) || p.opcoes.length < 2) {
         erros.push({ caminho: `${cp}.opcoes`, mensagem: "cada pergunta tem de ter pelo menos duas op\xE7\xF5es" });
         return;
@@ -354,7 +368,9 @@ function validarBloco(b, i, chaves, erros) {
       p.opcoes.forEach((o, k) => {
         if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.texto)) {
           erros.push({ caminho: `${cp}.opcoes[${k}]`, mensagem: "op\xE7\xE3o precisa de id e texto" });
+          return;
         }
+        validarNarracao(o.narracao, `${cp}.opcoes[${k}].narracao`, chaves, erros);
       });
     });
     return;

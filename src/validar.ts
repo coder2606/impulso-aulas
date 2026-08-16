@@ -68,6 +68,29 @@ function validarMedia(media: unknown, erros: ErroValidacao[]): MediaRef[] {
   return saida;
 }
 
+/**
+ * A narracao e opcional, mas escrita e tem de apontar para media declarada.
+ *
+ * E este cruzamento que justifica o campo existir em vez de se combinar um
+ * nome de ficheiro por convencao: uma chave mal escrita fica apanhada aqui, em
+ * vez de dar um silencio que ninguem sabe explicar.
+ */
+function validarNarracao(
+  valor: unknown,
+  caminho: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
+  if (valor === undefined) return;
+  if (!textoNaoVazio(valor)) {
+    erros.push({ caminho, mensagem: 'narracao tem de ser uma chave de media' });
+    return;
+  }
+  if (!chaves.has(valor)) {
+    erros.push({ caminho, mensagem: `chave sem media correspondente: ${valor}` });
+  }
+}
+
 function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroValidacao[]): void {
   const c = `blocos[${i}]`;
   if (!eObjecto(b)) {
@@ -116,6 +139,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       if (!textoNaoVazio(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: 'id da pergunta em falta' });
       if (!textoNaoVazio(p.enunciado)) erros.push({ caminho: `${cp}.enunciado`, mensagem: 'enunciado em falta' });
       if (!textoNaoVazio(p.explicacao)) erros.push({ caminho: `${cp}.explicacao`, mensagem: 'explicacao em falta' });
+      validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
       if (!Array.isArray(p.opcoes) || p.opcoes.length < 2) {
         erros.push({ caminho: `${cp}.opcoes`, mensagem: 'cada pergunta tem de ter pelo menos duas opções' });
         return;
@@ -124,7 +148,9 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       p.opcoes.forEach((o: unknown, k: number) => {
         if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.texto)) {
           erros.push({ caminho: `${cp}.opcoes[${k}]`, mensagem: 'opção precisa de id e texto' });
+          return;
         }
+        validarNarracao(o.narracao, `${cp}.opcoes[${k}].narracao`, chaves, erros);
       });
       if (!ids.includes(p.correcta)) {
         erros.push({ caminho: `${cp}.correcta`, mensagem: 'a resposta correcta não consta das opções' });
@@ -340,6 +366,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
           mensagem: 'a autoavaliação não tem resposta certa. Se há resposta certa, o bloco é um quiz',
         });
       }
+      validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
       if (!Array.isArray(p.opcoes) || p.opcoes.length < 2) {
         erros.push({ caminho: `${cp}.opcoes`, mensagem: 'cada pergunta tem de ter pelo menos duas opções' });
         return;
@@ -347,7 +374,9 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       p.opcoes.forEach((o: unknown, k: number) => {
         if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.texto)) {
           erros.push({ caminho: `${cp}.opcoes[${k}]`, mensagem: 'opção precisa de id e texto' });
+          return;
         }
+        validarNarracao(o.narracao, `${cp}.opcoes[${k}].narracao`, chaves, erros);
       });
     });
     return;
