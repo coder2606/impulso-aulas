@@ -30,7 +30,7 @@ export type BlocoCarrossel = {
   cartoes: CartaoCarrossel[];
 };
 
-export type Passo = { id: string; titulo: string; texto: string; imagem?: string };
+export type Passo = { id: string; titulo: string; texto: string; imagem?: string; narracao?: string };
 export type BlocoPassos = { id: string; tipo: 'passos'; titulo: string; passos: Passo[] };
 
 export type BlocoDesafio = {

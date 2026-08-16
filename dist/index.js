@@ -203,6 +203,7 @@ function validarBloco(b, i, chaves, erros) {
       if (!textoNaoVazio(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: "id do passo em falta" });
       if (!textoNaoVazio(p.titulo)) erros.push({ caminho: `${cp}.titulo`, mensagem: "titulo do passo em falta" });
       if (!textoNaoVazio(p.texto)) erros.push({ caminho: `${cp}.texto`, mensagem: "texto do passo em falta" });
+      validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
     });
     return;
   }

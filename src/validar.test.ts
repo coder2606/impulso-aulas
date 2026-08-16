@@ -594,6 +594,28 @@ describe('narração', () => {
     if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_instrucao');
   });
 
+  it('aceita narração num passo do guia', () => {
+    const passos = {
+      id: 'b5',
+      tipo: 'passos',
+      titulo: 'Antes de começar',
+      passos: [{ id: 'p1', titulo: 'Primeiro', texto: 'Faz isto.', narracao: 'p1.mp3' }],
+    };
+    expect(validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [passos] }).ok).toBe(true);
+  });
+
+  it('rejeita narração de um passo com chave que não está em media', () => {
+    const passos = {
+      id: 'b5',
+      tipo: 'passos',
+      titulo: 'Antes de começar',
+      passos: [{ id: 'p1', titulo: 'Primeiro', texto: 'Faz isto.', narracao: 'fantasma.mp3' }],
+    };
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [passos] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('passos[0].narracao');
+  });
+
   it('a instrução do bloco vale também no quiz', () => {
     const bloco = { ...quiz('p1.mp3'), narracao_instrucao: 'fantasma.mp3' };
     const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [bloco] });

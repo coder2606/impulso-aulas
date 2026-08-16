@@ -41,6 +41,7 @@ type Passo = {
     titulo: string;
     texto: string;
     imagem?: string;
+    narracao?: string;
 };
 type BlocoPassos = {
     id: string;

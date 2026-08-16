@@ -234,6 +234,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       if (!textoNaoVazio(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: 'id do passo em falta' });
       if (!textoNaoVazio(p.titulo)) erros.push({ caminho: `${cp}.titulo`, mensagem: 'titulo do passo em falta' });
       if (!textoNaoVazio(p.texto)) erros.push({ caminho: `${cp}.texto`, mensagem: 'texto do passo em falta' });
+      validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
     });
     return;
   }
