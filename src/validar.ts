@@ -126,6 +126,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (typeof b.xp_por_certa !== 'number' || b.xp_por_certa < 0) {
       erros.push({ caminho: `${c}.xp_por_certa`, mensagem: 'xp_por_certa tem de ser número não negativo' });
     }
+    validarNarracao(b.narracao_instrucao, `${c}.narracao_instrucao`, chaves, erros);
     if (!Array.isArray(b.perguntas) || b.perguntas.length === 0) {
       erros.push({ caminho: `${c}.perguntas`, mensagem: 'o quiz tem de ter pelo menos uma pergunta' });
       return;
@@ -348,6 +349,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (b.obrigatorio_para_concluir !== undefined && typeof b.obrigatorio_para_concluir !== 'boolean') {
       erros.push({ caminho: `${c}.obrigatorio_para_concluir`, mensagem: 'tem de ser booleano' });
     }
+    validarNarracao(b.narracao_instrucao, `${c}.narracao_instrucao`, chaves, erros);
     if (!Array.isArray(b.perguntas) || b.perguntas.length === 0) {
       erros.push({ caminho: `${c}.perguntas`, mensagem: 'tem de haver pelo menos uma pergunta' });
       return;

@@ -114,6 +114,9 @@ type BlocoAutoavaliacao = {
     id: string;
     tipo: 'autoavaliacao';
     titulo: string;
+    /** O que fazer depois de ouvir as alternativas. Fecha a narracao. */
+    instrucao?: string;
+    narracao_instrucao?: string;
     perguntas: PerguntaAutoavaliacao[];
     obrigatorio_para_concluir?: boolean;
 };
@@ -138,6 +141,9 @@ type BlocoQuiz = {
     vidas: number;
     tempo_seg: number;
     xp_por_certa: number;
+    /** O que fazer depois de ouvir as alternativas. Fecha a narracao. */
+    instrucao?: string;
+    narracao_instrucao?: string;
     perguntas: PerguntaQuiz[];
 };
 type CampoFormulario = {

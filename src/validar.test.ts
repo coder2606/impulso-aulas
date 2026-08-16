@@ -581,4 +581,23 @@ describe('narração', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.erros[0].caminho).toContain('opcoes[0].narracao');
   });
+
+  it('aceita a instrução do bloco, escrita e narrada', () => {
+    const bloco = { ...autoavaliacao('p1.mp3'), instrucao: 'Escolhe a que mais se parece contigo.', narracao_instrucao: 'p1-a.mp3' };
+    expect(validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [bloco] }).ok).toBe(true);
+  });
+
+  it('rejeita instrução narrada com chave que não está em media', () => {
+    const bloco = { ...autoavaliacao('p1.mp3'), narracao_instrucao: 'fantasma.mp3' };
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [bloco] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_instrucao');
+  });
+
+  it('a instrução do bloco vale também no quiz', () => {
+    const bloco = { ...quiz('p1.mp3'), narracao_instrucao: 'fantasma.mp3' };
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [bloco] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_instrucao');
+  });
 });

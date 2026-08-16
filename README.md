@@ -12,7 +12,7 @@ desenhar.
 ## Instalar
 
 ```bash
-npm install github:coder2606/impulso-aulas#v1.2.0
+npm install github:coder2606/impulso-aulas#v1.3.0
 ```
 
 Instala-se do GitHub, e nao do registo do npm. A etiqueta faz parte do endereco
