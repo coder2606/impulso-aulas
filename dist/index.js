@@ -174,6 +174,7 @@ function validarBloco(b, i, chaves, erros) {
       if (!textoNaoVazio(k.id)) erros.push({ caminho: `${ck}.id`, mensagem: "id do cart\xE3o em falta" });
       if (!textoNaoVazio(k.titulo)) erros.push({ caminho: `${ck}.titulo`, mensagem: "titulo do cart\xE3o em falta" });
       if (!textoNaoVazio(k.texto)) erros.push({ caminho: `${ck}.texto`, mensagem: "texto do cart\xE3o em falta" });
+      validarNarracao(k.narracao, `${ck}.narracao`, chaves, erros);
       if (k.meta !== void 0) {
         if (!Array.isArray(k.meta)) {
           erros.push({ caminho: `${ck}.meta`, mensagem: "meta tem de ser uma lista" });
@@ -421,6 +422,11 @@ function mediaPorChave(aula) {
 function textoDoPasso(p) {
   return `${p.titulo}. ${p.texto}`;
 }
+function textoDoCartao(c) {
+  const partes = [textoDoPasso(c)];
+  for (const m of c.meta ?? []) partes.push(`${m.rotulo}: ${m.valor}.`);
+  return partes.join(" ");
+}
 function pedacosDoBloco(bloco) {
   if (bloco.tipo === "passos") {
     return bloco.passos.map((p, i) => ({
@@ -428,6 +434,14 @@ function pedacosDoBloco(bloco) {
       rotulo: `Passo ${i + 1}, ${p.titulo}`,
       texto: textoDoPasso(p),
       narracao: p.narracao
+    }));
+  }
+  if (bloco.tipo === "carrossel") {
+    return bloco.cartoes.map((c, i) => ({
+      chave: `${bloco.id}-${c.id}.mp3`,
+      rotulo: `Cart\xE3o ${i + 1}, ${c.titulo}`,
+      texto: textoDoCartao(c),
+      narracao: c.narracao
     }));
   }
   if (bloco.tipo !== "quiz" && bloco.tipo !== "autoavaliacao") return [];
@@ -469,6 +483,15 @@ function definirNarracao(aula, chave, valor) {
         ...bloco,
         passos: bloco.passos.map(
           (p) => `${bloco.id}-${p.id}.mp3` === chave ? { ...p, narracao: valor } : p
+        )
+      };
+    }
+    if (bloco.tipo === "carrossel") {
+      if (!bloco.cartoes.some((c) => `${bloco.id}-${c.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        cartoes: bloco.cartoes.map(
+          (c) => `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c
         )
       };
     }

@@ -25,6 +25,23 @@ function textoDoPasso(p: { titulo: string; texto: string }): string {
   return `${p.titulo}. ${p.texto}`;
 }
 
+/**
+ * Um cartao le-se todo, o meta incluido.
+ *
+ * O meta parece detalhe de ecra, mas e onde estao os numeros: o capital minimo
+ * de um negocio, onde e que ele costuma falhar. Quem ouve em vez de ler ficava
+ * com a parte bonita do cartao e sem a parte que decide.
+ */
+function textoDoCartao(c: {
+  titulo: string;
+  texto: string;
+  meta?: { rotulo: string; valor: string }[];
+}): string {
+  const partes = [textoDoPasso(c)];
+  for (const m of c.meta ?? []) partes.push(`${m.rotulo}: ${m.valor}.`);
+  return partes.join(' ');
+}
+
 function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
   if (bloco.tipo === 'passos') {
     return bloco.passos.map((p, i) => ({
@@ -32,6 +49,15 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
       rotulo: `Passo ${i + 1}, ${p.titulo}`,
       texto: textoDoPasso(p),
       narracao: p.narracao,
+    }));
+  }
+
+  if (bloco.tipo === 'carrossel') {
+    return bloco.cartoes.map((c, i) => ({
+      chave: `${bloco.id}-${c.id}.mp3`,
+      rotulo: `Cartão ${i + 1}, ${c.titulo}`,
+      texto: textoDoCartao(c),
+      narracao: c.narracao,
     }));
   }
 
@@ -93,6 +119,16 @@ export function definirNarracao(
         ...bloco,
         passos: bloco.passos.map((p) =>
           `${bloco.id}-${p.id}.mp3` === chave ? { ...p, narracao: valor } : p,
+        ),
+      };
+    }
+
+    if (bloco.tipo === 'carrossel') {
+      if (!bloco.cartoes.some((c) => `${bloco.id}-${c.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        cartoes: bloco.cartoes.map((c) =>
+          `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c,
         ),
       };
     }

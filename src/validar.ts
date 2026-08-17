@@ -204,6 +204,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       if (!textoNaoVazio(k.id)) erros.push({ caminho: `${ck}.id`, mensagem: 'id do cartão em falta' });
       if (!textoNaoVazio(k.titulo)) erros.push({ caminho: `${ck}.titulo`, mensagem: 'titulo do cartão em falta' });
       if (!textoNaoVazio(k.texto)) erros.push({ caminho: `${ck}.texto`, mensagem: 'texto do cartão em falta' });
+      validarNarracao(k.narracao, `${ck}.narracao`, chaves, erros);
       if (k.meta !== undefined) {
         if (!Array.isArray(k.meta)) {
           erros.push({ caminho: `${ck}.meta`, mensagem: 'meta tem de ser uma lista' });

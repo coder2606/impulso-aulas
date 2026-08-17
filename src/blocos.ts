@@ -22,6 +22,7 @@ export type CartaoCarrossel = {
   texto: string;
   imagem?: string;
   meta?: { rotulo: string; valor: string }[];
+  narracao?: string;
 };
 export type BlocoCarrossel = {
   id: string;

@@ -14,6 +14,24 @@ const guia = {
   ],
 };
 
+const carrossel = {
+  id: 'b3',
+  tipo: 'carrossel',
+  titulo: 'Dez negócios',
+  cartoes: [
+    {
+      id: 'c1',
+      titulo: 'Comida preparada',
+      texto: 'Vende-se todos os dias.',
+      meta: [
+        { rotulo: 'Capital mínimo', valor: '300 a 800 MT' },
+        { rotulo: 'Onde falha', valor: 'Cozinhar de mais' },
+      ],
+    },
+    { id: 'c2', titulo: 'Costura', texto: 'Começa por bainhas.' },
+  ],
+};
+
 const perguntas = {
   id: 'b2',
   tipo: 'autoavaliacao',
@@ -56,6 +74,28 @@ describe('pedacosNarraveis', () => {
     };
     const p = pedacosNarraveis(aula([doisQ]));
     expect(p.filter((x) => x.chave.endsWith('-instrucao.mp3'))).toHaveLength(1);
+  });
+
+  it('dá um pedaço por cartão do carrossel', () => {
+    const p = pedacosNarraveis(aula([carrossel]));
+    expect(p.map((x) => x.chave)).toEqual(['b3-c1.mp3', 'b3-c2.mp3']);
+  });
+
+  it('lê o meta do cartão a seguir ao texto, que é onde estão os números', () => {
+    const p = pedacosNarraveis(aula([carrossel]));
+    expect(p[0].texto).toBe(
+      'Comida preparada. Vende-se todos os dias. Capital mínimo: 300 a 800 MT. Onde falha: Cozinhar de mais.',
+    );
+  });
+
+  it('um cartão sem meta lê-se só com o título e o texto', () => {
+    const p = pedacosNarraveis(aula([carrossel]));
+    expect(p[1].texto).toBe('Costura. Começa por bainhas.');
+  });
+
+  it('o rótulo do cartão diz a posição e o nome', () => {
+    const p = pedacosNarraveis(aula([carrossel]));
+    expect(p[0].rotulo).toBe('Cartão 1, Comida preparada');
   });
 
   it('não inventa pedaços em blocos que não se narram', () => {
@@ -107,6 +147,13 @@ describe('definirNarracao', () => {
       'b2-q1-b.mp3',
       'b2-instrucao.mp3',
     ]);
+  });
+
+  it('prende a chave ao cartão certo do carrossel', () => {
+    const nova = definirNarracao(aula([carrossel]), 'b3-c2.mp3', 'b3-c2.mp3');
+    const p = pedacosNarraveis(nova);
+    expect(p[1].narracao).toBe('b3-c2.mp3');
+    expect(p[0].narracao).toBeUndefined();
   });
 
   it('desprende quando o valor é indefinido', () => {

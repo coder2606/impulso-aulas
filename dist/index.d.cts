@@ -29,6 +29,7 @@ type CartaoCarrossel = {
         rotulo: string;
         valor: string;
     }[];
+    narracao?: string;
 };
 type BlocoCarrossel = {
     id: string;
