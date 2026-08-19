@@ -42,8 +42,15 @@ function textoDoCartao(c: {
   return partes.join(' ');
 }
 
-/** A linha de uma tabela nao tem id, so posicao. E daqui que sai o nome dela. */
-function idDaLinha(indice: number): string {
+/**
+ * A linha de uma tabela nao tem id, so posicao. E daqui que sai o nome dela.
+ *
+ * Exportado porque o leitor tambem precisa dele: e por este nome que ele vai
+ * buscar o clipe de cada linha ao mapa `narracao_linhas`. Com a conta feita
+ * dos dois lados, bastava um deles comecar em zero para a tabela toda passar a
+ * ler a linha errada em voz alta, e sem erro nenhum a assinalar.
+ */
+export function idDaLinhaDaTabela(indice: number): string {
   return `l${indice + 1}`;
 }
 
@@ -145,10 +152,10 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
         narracao: bloco.narracao,
       },
       ...bloco.linhas.map((linha, i) => ({
-        chave: `${bloco.id}-${idDaLinha(i)}.mp3`,
+        chave: `${bloco.id}-${idDaLinhaDaTabela(i)}.mp3`,
         rotulo: `Tabela, linha ${i + 1}`,
         texto: textoDaLinha(bloco.colunas, linha),
-        narracao: bloco.narracao_linhas?.[idDaLinha(i)],
+        narracao: bloco.narracao_linhas?.[idDaLinhaDaTabela(i)],
       })),
     ];
   }
@@ -253,14 +260,14 @@ export function definirNarracao(
 
     if (bloco.tipo === 'tabela') {
       if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
-      const n = bloco.linhas.findIndex((_, i) => `${bloco.id}-${idDaLinha(i)}.mp3` === chave);
+      const n = bloco.linhas.findIndex((_, i) => `${bloco.id}-${idDaLinhaDaTabela(i)}.mp3` === chave);
       if (n < 0) return bloco;
       // Sem o mapa quando esta vazio: um `narracao_linhas: {}` no conteudo
       // publicado so faz quem le o JSON perguntar-se o que e que la faltava.
       const { narracao_linhas: antes, ...resto } = bloco;
       const linhas = { ...antes };
-      if (valor === undefined) delete linhas[idDaLinha(n)];
-      else linhas[idDaLinha(n)] = valor;
+      if (valor === undefined) delete linhas[idDaLinhaDaTabela(n)];
+      else linhas[idDaLinhaDaTabela(n)] = valor;
       return Object.keys(linhas).length > 0 ? { ...resto, narracao_linhas: linhas } : resto;
     }
 

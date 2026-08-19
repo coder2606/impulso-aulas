@@ -40,7 +40,7 @@ export { NOMES_DE_FERRAMENTA } from "./blocos";
 export { validarAula, blocosObrigatorios, mediaPorChave } from "./validar";
 
 export type { PedacoNarravel } from "./narracao";
-export { pedacosNarraveis, definirNarracao } from "./narracao";
+export { pedacosNarraveis, definirNarracao, idDaLinhaDaTabela } from "./narracao";
 
 /**
  * Versao do formato de `aulas.conteudo`.

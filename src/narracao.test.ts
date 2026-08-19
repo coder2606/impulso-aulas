@@ -1,4 +1,4 @@
-import { pedacosNarraveis, definirNarracao } from './index';
+import { pedacosNarraveis, definirNarracao, idDaLinhaDaTabela } from './index';
 import type { ConteudoAula } from './index';
 
 const aula = (blocos: unknown[]): ConteudoAula =>
@@ -326,5 +326,17 @@ describe('narração dos blocos de acção', () => {
     const original = aula([tabela]);
     const nova = definirNarracao(original, 'b8-l9.mp3', 'b8-l9.mp3');
     expect(JSON.stringify(nova)).toBe(JSON.stringify(original));
+  });
+});
+
+describe('idDaLinhaDaTabela', () => {
+  it('conta as linhas a partir de um, que é como o rótulo as diz', () => {
+    expect(idDaLinhaDaTabela(0)).toBe('l1');
+    expect(idDaLinhaDaTabela(2)).toBe('l3');
+  });
+
+  it('dá o mesmo nome que a chave do pedaço usa', () => {
+    const p = pedacosNarraveis(aula([tabela]));
+    expect(p[1].chave).toBe(`b8-${idDaLinhaDaTabela(0)}.mp3`);
   });
 });

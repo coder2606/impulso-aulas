@@ -262,6 +262,15 @@ type PedacoNarravel = {
     /** A chave ja atribuida, quando este pedaco ja tem audio. */
     narracao?: string;
 };
+/**
+ * A linha de uma tabela nao tem id, so posicao. E daqui que sai o nome dela.
+ *
+ * Exportado porque o leitor tambem precisa dele: e por este nome que ele vai
+ * buscar o clipe de cada linha ao mapa `narracao_linhas`. Com a conta feita
+ * dos dois lados, bastava um deles comecar em zero para a tabela toda passar a
+ * ler a linha errada em voz alta, e sem erro nenhum a assinalar.
+ */
+declare function idDaLinhaDaTabela(indice: number): string;
 /** Tudo o que numa aula pode ser lido em voz alta, pela ordem em que se ouve. */
 declare function pedacosNarraveis(aula: ConteudoAula): PedacoNarravel[];
 /**
@@ -289,4 +298,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type ConteudoAula, type ErroValidacao, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, type NomeDeFerramenta, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoValidacao, type SlideAudio, blocosObrigatorios, definirNarracao, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type ConteudoAula, type ErroValidacao, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, type NomeDeFerramenta, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoValidacao, type SlideAudio, blocosObrigatorios, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato };

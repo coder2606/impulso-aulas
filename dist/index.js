@@ -451,7 +451,7 @@ function textoDoCartao(c) {
   for (const m of c.meta ?? []) partes.push(`${m.rotulo}: ${m.valor}.`);
   return partes.join(" ");
 }
-function idDaLinha(indice) {
+function idDaLinhaDaTabela(indice) {
   return `l${indice + 1}`;
 }
 function textoDaLinha(colunas, linha) {
@@ -536,10 +536,10 @@ function pedacosDoBloco(bloco) {
         narracao: bloco.narracao
       },
       ...bloco.linhas.map((linha, i) => ({
-        chave: `${bloco.id}-${idDaLinha(i)}.mp3`,
+        chave: `${bloco.id}-${idDaLinhaDaTabela(i)}.mp3`,
         rotulo: `Tabela, linha ${i + 1}`,
         texto: textoDaLinha(bloco.colunas, linha),
-        narracao: bloco.narracao_linhas?.[idDaLinha(i)]
+        narracao: bloco.narracao_linhas?.[idDaLinhaDaTabela(i)]
       }))
     ];
   }
@@ -619,12 +619,12 @@ function definirNarracao(aula, chave, valor) {
     }
     if (bloco.tipo === "tabela") {
       if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
-      const n = bloco.linhas.findIndex((_, i) => `${bloco.id}-${idDaLinha(i)}.mp3` === chave);
+      const n = bloco.linhas.findIndex((_, i) => `${bloco.id}-${idDaLinhaDaTabela(i)}.mp3` === chave);
       if (n < 0) return bloco;
       const { narracao_linhas: antes, ...resto } = bloco;
       const linhas = { ...antes };
-      if (valor === void 0) delete linhas[idDaLinha(n)];
-      else linhas[idDaLinha(n)] = valor;
+      if (valor === void 0) delete linhas[idDaLinhaDaTabela(n)];
+      else linhas[idDaLinhaDaTabela(n)] = valor;
       return Object.keys(linhas).length > 0 ? { ...resto, narracao_linhas: linhas } : resto;
     }
     if (bloco.tipo !== "quiz" && bloco.tipo !== "autoavaliacao") return bloco;
@@ -659,6 +659,7 @@ export {
   NOMES_DE_FERRAMENTA,
   blocosObrigatorios,
   definirNarracao,
+  idDaLinhaDaTabela,
   mediaPorChave,
   pedacosNarraveis,
   validarAula,
