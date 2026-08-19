@@ -622,4 +622,144 @@ describe('narração', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_instrucao');
   });
+
+  const ferramenta = (narracao?: string) => ({
+    id: 'b6',
+    tipo: 'ferramenta',
+    ferramenta: 'caderno-contas',
+    titulo: 'Abre o caderno',
+    narracao,
+  });
+
+  const desafio = (narracao?: string) => ({
+    id: 'b7',
+    tipo: 'desafio',
+    titulo: 'Quinze minutos no bairro',
+    instrucao: 'Anda quinze minutos e anota três problemas.',
+    prazo_dias: 2,
+    rotulo_resultado: 'Os três problemas',
+    narracao,
+  });
+
+  const checklist = (narracao?: string, narracaoItem?: string) => ({
+    id: 'b8',
+    tipo: 'checklist',
+    titulo: 'Prepara o passeio',
+    itens: [{ id: 'i1', texto: 'Tenho onde escrever', narracao: narracaoItem }],
+    narracao,
+  });
+
+  const formulario = (narracao?: string, narracaoCampo?: string) => ({
+    id: 'b9',
+    tipo: 'formulario',
+    titulo: 'O que viste',
+    instrucao: 'Escreve quando voltares.',
+    obrigatorio_para_concluir: false,
+    campos: [
+      {
+        id: 'c1',
+        rotulo: 'Primeiro problema',
+        tipo: 'texto',
+        obrigatorio: false,
+        max_carateres: 200,
+        narracao: narracaoCampo,
+      },
+    ],
+    narracao,
+  });
+
+  const tabela = (narracao?: string, linhas?: Record<string, string>) => ({
+    id: 'b10',
+    tipo: 'tabela',
+    titulo: 'Onde vender',
+    colunas: ['Sítio', 'Custo'],
+    linhas: [
+      ['Mercado', '50 MT'],
+      ['Porta de casa', 'Nada'],
+    ],
+    narracao,
+    narracao_linhas: linhas,
+  });
+
+  it('aceita narração na ferramenta e no desafio', () => {
+    const blocos = [ferramenta('p1.mp3'), desafio('p1-a.mp3')];
+    expect(validarAula({ ...AULA_VALIDA, media: MEDIA, blocos }).ok).toBe(true);
+  });
+
+  it('rejeita narração da ferramenta com chave que não está em media', () => {
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [ferramenta('fantasma.mp3')] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('narracao');
+  });
+
+  it('rejeita narração do desafio com chave que não está em media', () => {
+    const r = validarAula({ ...AULA_VALIDA, media: MEDIA, blocos: [desafio('fantasma.mp3')] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('narracao');
+  });
+
+  it('aceita narração no título e nos itens da checklist', () => {
+    const blocos = [checklist('p1.mp3', 'p1-a.mp3')];
+    expect(validarAula({ ...AULA_VALIDA, media: MEDIA, blocos }).ok).toBe(true);
+  });
+
+  it('rejeita narração de um item da checklist com chave que não está em media', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      media: MEDIA,
+      blocos: [checklist('p1.mp3', 'fantasma.mp3')],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('itens[0].narracao');
+  });
+
+  it('aceita narração no título e nos campos do formulário', () => {
+    const blocos = [formulario('p1.mp3', 'p1-a.mp3')];
+    expect(validarAula({ ...AULA_VALIDA, media: MEDIA, blocos }).ok).toBe(true);
+  });
+
+  it('rejeita narração de um campo do formulário com chave que não está em media', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      media: MEDIA,
+      blocos: [formulario('p1.mp3', 'fantasma.mp3')],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('campos[0].narracao');
+  });
+
+  it('aceita narração no título e nas linhas da tabela', () => {
+    const blocos = [tabela('p1.mp3', { l1: 'p1-a.mp3' })];
+    expect(validarAula({ ...AULA_VALIDA, media: MEDIA, blocos }).ok).toBe(true);
+  });
+
+  it('rejeita narração de uma linha com chave que não está em media', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      media: MEDIA,
+      blocos: [tabela(undefined, { l1: 'fantasma.mp3' })],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_linhas.l1');
+  });
+
+  it('rejeita narração de uma linha que a tabela não tem', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      media: MEDIA,
+      blocos: [tabela(undefined, { l9: 'p1.mp3' })],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_linhas.l9');
+  });
+
+  it('rejeita narracao_linhas que não seja um mapa', () => {
+    const r = validarAula({
+      ...AULA_VALIDA,
+      media: MEDIA,
+      blocos: [{ ...tabela(), narracao_linhas: ['p1.mp3'] }],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_linhas');
+  });
 });

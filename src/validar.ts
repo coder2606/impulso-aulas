@@ -91,6 +91,37 @@ function validarNarracao(
   }
 }
 
+/**
+ * O audio das linhas de uma tabela, que vem num mapa e nao numa lista.
+ *
+ * Alem de cada chave ter de existir em `media`, o nome da entrada tem de
+ * apontar para uma linha que a tabela tenha mesmo. Uma tabela que perde uma
+ * linha ficava com um clipe orfao, e ninguem dava por ele: nao toca em lado
+ * nenhum e nao ha erro nenhum a dizer porque.
+ */
+function validarNarracaoDasLinhas(
+  valor: unknown,
+  quantasLinhas: number,
+  c: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
+  if (valor === undefined) return;
+  if (!eObjecto(valor)) {
+    erros.push({ caminho: `${c}.narracao_linhas`, mensagem: 'narracao_linhas tem de ser um objecto' });
+    return;
+  }
+  for (const [linha, chave] of Object.entries(valor)) {
+    const caminho = `${c}.narracao_linhas.${linha}`;
+    const n = /^l([1-9][0-9]*)$/.exec(linha);
+    if (!n || Number(n[1]) > quantasLinhas) {
+      erros.push({ caminho, mensagem: `a tabela não tem a linha ${linha}` });
+      continue;
+    }
+    validarNarracao(chave, caminho, chaves, erros);
+  }
+}
+
 function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroValidacao[]): void {
   const c = `blocos[${i}]`;
   if (!eObjecto(b)) {
@@ -185,7 +216,9 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       if (!inteiroPositivo(f.max_carateres)) {
         erros.push({ caminho: `${cf}.max_carateres`, mensagem: 'max_carateres tem de ser inteiro positivo' });
       }
+      validarNarracao(f.narracao, `${cf}.narracao`, chaves, erros);
     });
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     return;
   }
 
@@ -252,6 +285,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (b.obrigatorio_para_concluir !== undefined && typeof b.obrigatorio_para_concluir !== 'boolean') {
       erros.push({ caminho: `${c}.obrigatorio_para_concluir`, mensagem: 'tem de ser booleano' });
     }
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     return;
   }
 
@@ -272,7 +306,9 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       }
       if (!textoNaoVazio(t.id)) erros.push({ caminho: `${ct}.id`, mensagem: 'id do item em falta' });
       if (!textoNaoVazio(t.texto)) erros.push({ caminho: `${ct}.texto`, mensagem: 'texto do item em falta' });
+      validarNarracao(t.narracao, `${ct}.narracao`, chaves, erros);
     });
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     return;
   }
 
@@ -343,6 +379,8 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
         erros.push({ caminho: `${c}.linhas[${j}]`, mensagem: 'cada célula tem de ser texto' });
       }
     });
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
+    validarNarracaoDasLinhas(b.narracao_linhas, (b.linhas as unknown[]).length, c, chaves, erros);
     return;
   }
 
@@ -399,6 +437,8 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (b.instrucao !== undefined && !textoNaoVazio(b.instrucao)) {
       erros.push({ caminho: `${c}.instrucao`, mensagem: 'se a instrução existir, não pode ser vazia' });
     }
+
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
 
     if (b.parametros !== undefined) {
       if (!eObjecto(b.parametros)) {

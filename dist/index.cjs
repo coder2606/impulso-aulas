@@ -97,6 +97,22 @@ function validarNarracao(valor, caminho, chaves, erros) {
     erros.push({ caminho, mensagem: `chave sem media correspondente: ${valor}` });
   }
 }
+function validarNarracaoDasLinhas(valor, quantasLinhas, c, chaves, erros) {
+  if (valor === void 0) return;
+  if (!eObjecto(valor)) {
+    erros.push({ caminho: `${c}.narracao_linhas`, mensagem: "narracao_linhas tem de ser um objecto" });
+    return;
+  }
+  for (const [linha, chave] of Object.entries(valor)) {
+    const caminho = `${c}.narracao_linhas.${linha}`;
+    const n = /^l([1-9][0-9]*)$/.exec(linha);
+    if (!n || Number(n[1]) > quantasLinhas) {
+      erros.push({ caminho, mensagem: `a tabela n\xE3o tem a linha ${linha}` });
+      continue;
+    }
+    validarNarracao(chave, caminho, chaves, erros);
+  }
+}
 function validarBloco(b, i, chaves, erros) {
   const c = `blocos[${i}]`;
   if (!eObjecto(b)) {
@@ -188,7 +204,9 @@ function validarBloco(b, i, chaves, erros) {
       if (!inteiroPositivo(f.max_carateres)) {
         erros.push({ caminho: `${cf}.max_carateres`, mensagem: "max_carateres tem de ser inteiro positivo" });
       }
+      validarNarracao(f.narracao, `${cf}.narracao`, chaves, erros);
     });
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     return;
   }
   if (b.tipo === "carrossel") {
@@ -252,6 +270,7 @@ function validarBloco(b, i, chaves, erros) {
     if (b.obrigatorio_para_concluir !== void 0 && typeof b.obrigatorio_para_concluir !== "boolean") {
       erros.push({ caminho: `${c}.obrigatorio_para_concluir`, mensagem: "tem de ser booleano" });
     }
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     return;
   }
   if (b.tipo === "checklist") {
@@ -271,7 +290,9 @@ function validarBloco(b, i, chaves, erros) {
       }
       if (!textoNaoVazio(t.id)) erros.push({ caminho: `${ct}.id`, mensagem: "id do item em falta" });
       if (!textoNaoVazio(t.texto)) erros.push({ caminho: `${ct}.texto`, mensagem: "texto do item em falta" });
+      validarNarracao(t.narracao, `${ct}.narracao`, chaves, erros);
     });
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     return;
   }
   if (b.tipo === "audio_slides") {
@@ -340,6 +361,8 @@ function validarBloco(b, i, chaves, erros) {
         erros.push({ caminho: `${c}.linhas[${j}]`, mensagem: "cada c\xE9lula tem de ser texto" });
       }
     });
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
+    validarNarracaoDasLinhas(b.narracao_linhas, b.linhas.length, c, chaves, erros);
     return;
   }
   if (b.tipo === "autoavaliacao") {
@@ -392,6 +415,7 @@ function validarBloco(b, i, chaves, erros) {
     if (b.instrucao !== void 0 && !textoNaoVazio(b.instrucao)) {
       erros.push({ caminho: `${c}.instrucao`, mensagem: "se a instru\xE7\xE3o existir, n\xE3o pode ser vazia" });
     }
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     if (b.parametros !== void 0) {
       if (!eObjecto(b.parametros)) {
         erros.push({ caminho: `${c}.parametros`, mensagem: "parametros tem de ser um objecto" });
@@ -459,6 +483,12 @@ function textoDoCartao(c) {
   for (const m of c.meta ?? []) partes.push(`${m.rotulo}: ${m.valor}.`);
   return partes.join(" ");
 }
+function idDaLinha(indice) {
+  return `l${indice + 1}`;
+}
+function textoDaLinha(colunas, linha) {
+  return linha.map((celula, j) => colunas[j] ? `${colunas[j]}: ${celula}.` : `${celula}.`).join(" ");
+}
 function pedacosDoBloco(bloco) {
   if (bloco.tipo === "passos") {
     return bloco.passos.map((p, i) => ({
@@ -475,6 +505,75 @@ function pedacosDoBloco(bloco) {
       texto: textoDoCartao(c),
       narracao: c.narracao
     }));
+  }
+  if (bloco.tipo === "ferramenta") {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Ferramenta, ${bloco.titulo}`,
+        texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+        narracao: bloco.narracao
+      }
+    ];
+  }
+  if (bloco.tipo === "desafio") {
+    const dias = bloco.prazo_dias === 1 ? "1 dia" : `${bloco.prazo_dias} dias`;
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Desafio, ${bloco.titulo}`,
+        texto: `${bloco.titulo}. ${bloco.instrucao} Tens ${dias}. No fim escreve: ${bloco.rotulo_resultado}.`,
+        narracao: bloco.narracao
+      }
+    ];
+  }
+  if (bloco.tipo === "checklist") {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Lista, ${bloco.titulo}`,
+        texto: `${bloco.titulo}.`,
+        narracao: bloco.narracao
+      },
+      ...bloco.itens.map((item, i) => ({
+        chave: `${bloco.id}-${item.id}.mp3`,
+        rotulo: `Lista, item ${i + 1}`,
+        texto: item.texto,
+        narracao: item.narracao
+      }))
+    ];
+  }
+  if (bloco.tipo === "formulario") {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Formul\xE1rio, ${bloco.titulo}`,
+        texto: `${bloco.titulo}. ${bloco.instrucao}`,
+        narracao: bloco.narracao
+      },
+      ...bloco.campos.map((campo, i) => ({
+        chave: `${bloco.id}-${campo.id}.mp3`,
+        rotulo: `Formul\xE1rio, campo ${i + 1}, ${campo.rotulo}`,
+        texto: campo.rotulo,
+        narracao: campo.narracao
+      }))
+    ];
+  }
+  if (bloco.tipo === "tabela") {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Tabela, ${bloco.titulo}`,
+        texto: `${bloco.titulo}.`,
+        narracao: bloco.narracao
+      },
+      ...bloco.linhas.map((linha, i) => ({
+        chave: `${bloco.id}-${idDaLinha(i)}.mp3`,
+        rotulo: `Tabela, linha ${i + 1}`,
+        texto: textoDaLinha(bloco.colunas, linha),
+        narracao: bloco.narracao_linhas?.[idDaLinha(i)]
+      }))
+    ];
   }
   if (bloco.tipo !== "quiz" && bloco.tipo !== "autoavaliacao") return [];
   const saida = [];
@@ -526,6 +625,39 @@ function definirNarracao(aula, chave, valor) {
           (c) => `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c
         )
       };
+    }
+    if (bloco.tipo === "ferramenta" || bloco.tipo === "desafio") {
+      return `${bloco.id}.mp3` === chave ? { ...bloco, narracao: valor } : bloco;
+    }
+    if (bloco.tipo === "checklist") {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+      if (!bloco.itens.some((i) => `${bloco.id}-${i.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        itens: bloco.itens.map(
+          (i) => `${bloco.id}-${i.id}.mp3` === chave ? { ...i, narracao: valor } : i
+        )
+      };
+    }
+    if (bloco.tipo === "formulario") {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+      if (!bloco.campos.some((c) => `${bloco.id}-${c.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        campos: bloco.campos.map(
+          (c) => `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c
+        )
+      };
+    }
+    if (bloco.tipo === "tabela") {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+      const n = bloco.linhas.findIndex((_, i) => `${bloco.id}-${idDaLinha(i)}.mp3` === chave);
+      if (n < 0) return bloco;
+      const { narracao_linhas: antes, ...resto } = bloco;
+      const linhas = { ...antes };
+      if (valor === void 0) delete linhas[idDaLinha(n)];
+      else linhas[idDaLinha(n)] = valor;
+      return Object.keys(linhas).length > 0 ? { ...resto, narracao_linhas: linhas } : resto;
     }
     if (bloco.tipo !== "quiz" && bloco.tipo !== "autoavaliacao") return bloco;
     if (chave === `${bloco.id}-instrucao.mp3`) {

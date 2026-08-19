@@ -58,10 +58,12 @@ type BlocoDesafio = {
     prazo_dias: number;
     rotulo_resultado: string;
     obrigatorio_para_concluir?: boolean;
+    narracao?: string;
 };
 type ItemChecklist = {
     id: string;
     texto: string;
+    narracao?: string;
 };
 type BlocoChecklist = {
     id: string;
@@ -69,6 +71,7 @@ type BlocoChecklist = {
     titulo: string;
     itens: ItemChecklist[];
     obrigatorio_para_concluir?: boolean;
+    narracao?: string;
 };
 type SlideAudio = {
     chave: string;
@@ -91,6 +94,15 @@ type BlocoTabela = {
     titulo: string;
     colunas: string[];
     linhas: string[][];
+    narracao?: string;
+    /**
+     * O áudio de cada linha, identificada por `l1`, `l2`, e assim por diante.
+     *
+     * As linhas são listas de células e não têm id próprio, por isso a chave sai
+     * da posição. Um mapa e não uma lista em paralelo: assim só há entradas para
+     * as linhas que têm clipe, e o guião apaga uma sem deixar buracos no meio.
+     */
+    narracao_linhas?: Record<string, string>;
 };
 /**
  * A `narracao` e uma chave da lista `media` da aula, tal como a `imagem`.
@@ -154,6 +166,7 @@ type CampoFormulario = {
     tipo: 'texto' | 'numero';
     obrigatorio: boolean;
     max_carateres: number;
+    narracao?: string;
 };
 type BlocoFormulario = {
     id: string;
@@ -162,6 +175,7 @@ type BlocoFormulario = {
     instrucao: string;
     obrigatorio_para_concluir: boolean;
     campos: CampoFormulario[];
+    narracao?: string;
 };
 /**
  * As ferramentas nativas que uma aula pode invocar.
@@ -181,6 +195,7 @@ type BlocoFerramenta = {
     instrucao?: string;
     /** Valores com que a ferramenta abre, para o jovem substituir pelos dele. */
     parametros?: Record<string, string | number>;
+    narracao?: string;
 };
 type BlocoRecompensa = {
     id: string;

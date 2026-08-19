@@ -174,3 +174,157 @@ describe('definirNarracao', () => {
     expect(JSON.stringify(nova)).toBe(JSON.stringify(original));
   });
 });
+
+const ferramenta = {
+  id: 'b4',
+  tipo: 'ferramenta',
+  ferramenta: 'catalogo-ideias',
+  titulo: 'Filtra pelo que tens',
+  instrucao: 'Diz quanto podes juntar e em que cidade estás.',
+};
+
+const desafio = {
+  id: 'b5',
+  tipo: 'desafio',
+  titulo: 'Quinze minutos no bairro',
+  instrucao: 'Anda quinze minutos sem telemóvel na mão. Anota três problemas.',
+  prazo_dias: 2,
+  rotulo_resultado: 'Os três problemas',
+};
+
+const checklist = {
+  id: 'b6',
+  tipo: 'checklist',
+  titulo: 'Prepara o passeio',
+  itens: [
+    { id: 'i1', texto: 'Tenho onde escrever' },
+    { id: 'i2', texto: 'Escolhi o percurso' },
+  ],
+};
+
+const formulario = {
+  id: 'b7',
+  tipo: 'formulario',
+  titulo: 'O que viste',
+  instrucao: 'Escreve quando voltares.',
+  obrigatorio_para_concluir: false,
+  campos: [
+    { id: 'c1', rotulo: 'Primeiro problema', tipo: 'texto', obrigatorio: false, max_carateres: 200 },
+    { id: 'c2', rotulo: 'Segundo problema', tipo: 'texto', obrigatorio: false, max_carateres: 200 },
+  ],
+};
+
+const tabela = {
+  id: 'b8',
+  tipo: 'tabela',
+  titulo: 'Onde vender',
+  colunas: ['Sítio', 'Custo', 'Quem passa'],
+  linhas: [
+    ['Mercado', '50 MT por dia', 'Muita gente de manhã'],
+    ['Porta de casa', 'Nada', 'Só os vizinhos'],
+  ],
+};
+
+describe('narração dos blocos de acção', () => {
+  it('a ferramenta tem um pedaço, com o título antes da instrução', () => {
+    const p = pedacosNarraveis(aula([ferramenta]));
+    expect(p).toHaveLength(1);
+    expect(p[0].chave).toBe('b4.mp3');
+    expect(p[0].texto).toBe('Filtra pelo que tens. Diz quanto podes juntar e em que cidade estás.');
+  });
+
+  it('uma ferramenta sem instrução lê-se só pelo título', () => {
+    const p = pedacosNarraveis(aula([{ ...ferramenta, instrucao: undefined }]));
+    expect(p[0].texto).toBe('Filtra pelo que tens.');
+  });
+
+  it('o desafio diz o que fazer, em quantos dias, e o que trazer de volta', () => {
+    const p = pedacosNarraveis(aula([desafio]));
+    expect(p).toHaveLength(1);
+    expect(p[0].chave).toBe('b5.mp3');
+    expect(p[0].texto).toBe(
+      'Quinze minutos no bairro. Anda quinze minutos sem telemóvel na mão. Anota três problemas. Tens 2 dias. No fim escreve: Os três problemas.',
+    );
+  });
+
+  it('um desafio de um dia não diz «1 dias»', () => {
+    const p = pedacosNarraveis(aula([{ ...desafio, prazo_dias: 1 }]));
+    expect(p[0].texto).toContain('Tens 1 dia. ');
+  });
+
+  it('a checklist lê o título e depois cada item', () => {
+    const p = pedacosNarraveis(aula([checklist]));
+    expect(p.map((x) => x.chave)).toEqual(['b6.mp3', 'b6-i1.mp3', 'b6-i2.mp3']);
+    expect(p[0].texto).toBe('Prepara o passeio.');
+    expect(p[1].texto).toBe('Tenho onde escrever');
+  });
+
+  it('o formulário lê o título com a instrução e depois cada campo pelo rótulo', () => {
+    const p = pedacosNarraveis(aula([formulario]));
+    expect(p.map((x) => x.chave)).toEqual(['b7.mp3', 'b7-c1.mp3', 'b7-c2.mp3']);
+    expect(p[0].texto).toBe('O que viste. Escreve quando voltares.');
+    expect(p[1].texto).toBe('Primeiro problema');
+  });
+
+  it('a tabela lê o título e depois cada linha, coluna a coluna', () => {
+    const p = pedacosNarraveis(aula([tabela]));
+    expect(p.map((x) => x.chave)).toEqual(['b8.mp3', 'b8-l1.mp3', 'b8-l2.mp3']);
+    expect(p[1].texto).toBe('Sítio: Mercado. Custo: 50 MT por dia. Quem passa: Muita gente de manhã.');
+  });
+
+  it('uma célula sem coluna a condizer lê-se na mesma', () => {
+    const curta = { ...tabela, linhas: [['Mercado', '50 MT por dia', 'De manhã', 'Sobra']] };
+    const p = pedacosNarraveis(aula([curta]));
+    expect(p[1].texto).toContain('Sobra.');
+  });
+
+  it('dá rótulos que se percebem sem ver o JSON', () => {
+    const p = pedacosNarraveis(aula([ferramenta, desafio, checklist, formulario, tabela]));
+    const rotulos = p.map((x) => x.rotulo);
+    expect(rotulos[0]).toBe('Ferramenta, Filtra pelo que tens');
+    expect(rotulos[1]).toBe('Desafio, Quinze minutos no bairro');
+    expect(rotulos[2]).toBe('Lista, Prepara o passeio');
+    expect(rotulos[3]).toBe('Lista, item 1');
+    expect(rotulos[6]).toBe('Formulário, campo 1, Primeiro problema');
+    expect(rotulos[9]).toBe('Tabela, linha 1');
+  });
+
+  it('prende a chave à ferramenta e ao desafio', () => {
+    let a = aula([ferramenta, desafio]);
+    a = definirNarracao(a, 'b4.mp3', 'b4.mp3');
+    a = definirNarracao(a, 'b5.mp3', 'b5.mp3');
+    expect(pedacosNarraveis(a).map((x) => x.narracao)).toEqual(['b4.mp3', 'b5.mp3']);
+  });
+
+  it('prende a chave ao item certo da checklist, sem tocar no título', () => {
+    const a = definirNarracao(aula([checklist]), 'b6-i2.mp3', 'b6-i2.mp3');
+    expect(pedacosNarraveis(a).map((x) => x.narracao)).toEqual([undefined, undefined, 'b6-i2.mp3']);
+  });
+
+  it('prende a chave ao campo certo do formulário', () => {
+    const a = definirNarracao(aula([formulario]), 'b7-c1.mp3', 'b7-c1.mp3');
+    expect(pedacosNarraveis(a).map((x) => x.narracao)).toEqual([undefined, 'b7-c1.mp3', undefined]);
+  });
+
+  it('prende a chave à linha certa da tabela', () => {
+    let a = definirNarracao(aula([tabela]), 'b8.mp3', 'b8.mp3');
+    a = definirNarracao(a, 'b8-l2.mp3', 'b8-l2.mp3');
+    expect(pedacosNarraveis(a).map((x) => x.narracao)).toEqual([
+      'b8.mp3',
+      undefined,
+      'b8-l2.mp3',
+    ]);
+  });
+
+  it('desprende a linha da tabela quando o valor é indefinido', () => {
+    let a = definirNarracao(aula([tabela]), 'b8-l1.mp3', 'b8-l1.mp3');
+    a = definirNarracao(a, 'b8-l1.mp3', undefined);
+    expect(pedacosNarraveis(a)[1].narracao).toBeUndefined();
+  });
+
+  it('uma chave de linha que não existe deixa a tabela igual', () => {
+    const original = aula([tabela]);
+    const nova = definirNarracao(original, 'b8-l9.mp3', 'b8-l9.mp3');
+    expect(JSON.stringify(nova)).toBe(JSON.stringify(original));
+  });
+});

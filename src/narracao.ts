@@ -42,6 +42,22 @@ function textoDoCartao(c: {
   return partes.join(' ');
 }
 
+/** A linha de uma tabela nao tem id, so posicao. E daqui que sai o nome dela. */
+function idDaLinha(indice: number): string {
+  return `l${indice + 1}`;
+}
+
+/**
+ * Uma linha le-se em pares, com o nome da coluna antes da celula.
+ *
+ * Sem o nome da coluna, uma linha de tabela dita em voz alta e uma lista de
+ * palavras soltas: quem ouve nao sabe se «50 MT» e o custo ou o lucro. Uma
+ * celula sem coluna a condizer le-se na mesma, porque ficar calado seria pior.
+ */
+function textoDaLinha(colunas: string[], linha: string[]): string {
+  return linha.map((celula, j) => (colunas[j] ? `${colunas[j]}: ${celula}.` : `${celula}.`)).join(' ');
+}
+
 function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
   if (bloco.tipo === 'passos') {
     return bloco.passos.map((p, i) => ({
@@ -59,6 +75,82 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
       texto: textoDoCartao(c),
       narracao: c.narracao,
     }));
+  }
+
+  if (bloco.tipo === 'ferramenta') {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Ferramenta, ${bloco.titulo}`,
+        texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+        narracao: bloco.narracao,
+      },
+    ];
+  }
+
+  if (bloco.tipo === 'desafio') {
+    // O prazo e o que se entrega fazem parte do enunciado: um desafio ouvido
+    // sem eles deixa o jovem a saber o que fazer e nao ate quando.
+    const dias = bloco.prazo_dias === 1 ? '1 dia' : `${bloco.prazo_dias} dias`;
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Desafio, ${bloco.titulo}`,
+        texto: `${bloco.titulo}. ${bloco.instrucao} Tens ${dias}. No fim escreve: ${bloco.rotulo_resultado}.`,
+        narracao: bloco.narracao,
+      },
+    ];
+  }
+
+  if (bloco.tipo === 'checklist') {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Lista, ${bloco.titulo}`,
+        texto: `${bloco.titulo}.`,
+        narracao: bloco.narracao,
+      },
+      ...bloco.itens.map((item, i) => ({
+        chave: `${bloco.id}-${item.id}.mp3`,
+        rotulo: `Lista, item ${i + 1}`,
+        texto: item.texto,
+        narracao: item.narracao,
+      })),
+    ];
+  }
+
+  if (bloco.tipo === 'formulario') {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Formulário, ${bloco.titulo}`,
+        texto: `${bloco.titulo}. ${bloco.instrucao}`,
+        narracao: bloco.narracao,
+      },
+      ...bloco.campos.map((campo, i) => ({
+        chave: `${bloco.id}-${campo.id}.mp3`,
+        rotulo: `Formulário, campo ${i + 1}, ${campo.rotulo}`,
+        texto: campo.rotulo,
+        narracao: campo.narracao,
+      })),
+    ];
+  }
+
+  if (bloco.tipo === 'tabela') {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Tabela, ${bloco.titulo}`,
+        texto: `${bloco.titulo}.`,
+        narracao: bloco.narracao,
+      },
+      ...bloco.linhas.map((linha, i) => ({
+        chave: `${bloco.id}-${idDaLinha(i)}.mp3`,
+        rotulo: `Tabela, linha ${i + 1}`,
+        texto: textoDaLinha(bloco.colunas, linha),
+        narracao: bloco.narracao_linhas?.[idDaLinha(i)],
+      })),
+    ];
   }
 
   if (bloco.tipo !== 'quiz' && bloco.tipo !== 'autoavaliacao') return [];
@@ -131,6 +223,45 @@ export function definirNarracao(
           `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c,
         ),
       };
+    }
+
+    if (bloco.tipo === 'ferramenta' || bloco.tipo === 'desafio') {
+      return `${bloco.id}.mp3` === chave ? { ...bloco, narracao: valor } : bloco;
+    }
+
+    if (bloco.tipo === 'checklist') {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+      if (!bloco.itens.some((i) => `${bloco.id}-${i.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        itens: bloco.itens.map((i) =>
+          `${bloco.id}-${i.id}.mp3` === chave ? { ...i, narracao: valor } : i,
+        ),
+      };
+    }
+
+    if (bloco.tipo === 'formulario') {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+      if (!bloco.campos.some((c) => `${bloco.id}-${c.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        campos: bloco.campos.map((c) =>
+          `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c,
+        ),
+      };
+    }
+
+    if (bloco.tipo === 'tabela') {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+      const n = bloco.linhas.findIndex((_, i) => `${bloco.id}-${idDaLinha(i)}.mp3` === chave);
+      if (n < 0) return bloco;
+      // Sem o mapa quando esta vazio: um `narracao_linhas: {}` no conteudo
+      // publicado so faz quem le o JSON perguntar-se o que e que la faltava.
+      const { narracao_linhas: antes, ...resto } = bloco;
+      const linhas = { ...antes };
+      if (valor === undefined) delete linhas[idDaLinha(n)];
+      else linhas[idDaLinha(n)] = valor;
+      return Object.keys(linhas).length > 0 ? { ...resto, narracao_linhas: linhas } : resto;
     }
 
     if (bloco.tipo !== 'quiz' && bloco.tipo !== 'autoavaliacao') return bloco;

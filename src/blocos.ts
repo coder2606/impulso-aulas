@@ -42,15 +42,17 @@ export type BlocoDesafio = {
   prazo_dias: number;
   rotulo_resultado: string;
   obrigatorio_para_concluir?: boolean;
+  narracao?: string;
 };
 
-export type ItemChecklist = { id: string; texto: string };
+export type ItemChecklist = { id: string; texto: string; narracao?: string };
 export type BlocoChecklist = {
   id: string;
   tipo: 'checklist';
   titulo: string;
   itens: ItemChecklist[];
   obrigatorio_para_concluir?: boolean;
+  narracao?: string;
 };
 
 export type SlideAudio = { chave: string; ate_seg: number; legenda?: string };
@@ -68,6 +70,15 @@ export type BlocoTabela = {
   titulo: string;
   colunas: string[];
   linhas: string[][];
+  narracao?: string;
+  /**
+   * O áudio de cada linha, identificada por `l1`, `l2`, e assim por diante.
+   *
+   * As linhas são listas de células e não têm id próprio, por isso a chave sai
+   * da posição. Um mapa e não uma lista em paralelo: assim só há entradas para
+   * as linhas que têm clipe, e o guião apaga uma sem deixar buracos no meio.
+   */
+  narracao_linhas?: Record<string, string>;
 };
 
 /**
@@ -124,6 +135,7 @@ export type CampoFormulario = {
   tipo: 'texto' | 'numero';
   obrigatorio: boolean;
   max_carateres: number;
+  narracao?: string;
 };
 export type BlocoFormulario = {
   id: string;
@@ -132,6 +144,7 @@ export type BlocoFormulario = {
   instrucao: string;
   obrigatorio_para_concluir: boolean;
   campos: CampoFormulario[];
+  narracao?: string;
 };
 
 /**
@@ -163,6 +176,7 @@ export type BlocoFerramenta = {
   instrucao?: string;
   /** Valores com que a ferramenta abre, para o jovem substituir pelos dele. */
   parametros?: Record<string, string | number>;
+  narracao?: string;
 };
 
 export type BlocoRecompensa = {
