@@ -140,9 +140,13 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       erros.push({ caminho: `${c}.fonte`, mensagem: 'fonte em falta' });
       return;
     }
+    // Um vídeo `em_breve` está encomendado e ainda não existe. Declara a chave
+    // que vai usar e a duração prevista, e é o único caso em que uma chave pode
+    // não ter ficheiro do outro lado. O resto continua a ser exigido: sem chave
+    // e sem duração ninguém sabe o que ali vai entrar nem quanto vai pesar.
     if (!textoNaoVazio(f.chave)) {
       erros.push({ caminho: `${c}.fonte.chave`, mensagem: 'chave do vídeo em falta' });
-    } else if (!chaves.has(f.chave)) {
+    } else if (!chaves.has(f.chave) && b.em_breve !== true) {
       erros.push({ caminho: `${c}.fonte.chave`, mensagem: `chave sem media correspondente: ${f.chave}` });
     }
     if (!inteiroPositivo(f.duracao_seg)) {

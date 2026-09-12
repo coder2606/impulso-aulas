@@ -133,7 +133,7 @@ function validarBloco(b, i, chaves, erros) {
     }
     if (!textoNaoVazio(f.chave)) {
       erros.push({ caminho: `${c}.fonte.chave`, mensagem: "chave do v\xEDdeo em falta" });
-    } else if (!chaves.has(f.chave)) {
+    } else if (!chaves.has(f.chave) && b.em_breve !== true) {
       erros.push({ caminho: `${c}.fonte.chave`, mensagem: `chave sem media correspondente: ${f.chave}` });
     }
     if (!inteiroPositivo(f.duracao_seg)) {

@@ -90,6 +90,30 @@ describe('validarAula', () => {
     if (!r.ok) expect(r.erros[0].mensagem).toContain('inexistente.mp4');
   });
 
+  it('aceita vídeo sem media quando está marcado em_breve', () => {
+    // O vídeo está encomendado e ainda não existe. A aula declara a chave que
+    // vai usar, para quem monta saber qual é o buraco, e o leitor mostra um
+    // aviso no lugar dele.
+    const r = validarAula({
+      ...AULA_VALIDA,
+      blocos: [
+        { id: 'b1', tipo: 'video', fonte: { chave: 'narrativa.mp4', duracao_seg: 108 }, em_breve: true },
+      ],
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it('exige duração mesmo num vídeo em_breve', () => {
+    // Sem duração ninguém sabe quanto vai pesar a descarga da sessão no dia em
+    // que o ficheiro chegar.
+    const r = validarAula({
+      ...AULA_VALIDA,
+      blocos: [{ id: 'b1', tipo: 'video', fonte: { chave: 'narrativa.mp4', duracao_seg: 0 }, em_breve: true }],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].mensagem).toContain('duracao_seg');
+  });
+
   it('rejeita quiz cuja resposta correcta não está nas opções', () => {
     const quiz = {
       id: 'b2',

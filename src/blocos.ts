@@ -14,6 +14,18 @@ export type BlocoVideo = {
   fonte: { chave: string; duracao_seg: number };
   poster?: string;
   legenda?: string;
+  /**
+   * O video esta encomendado e ainda nao existe.
+   *
+   * A aula declara-o na mesma, com a chave que vai usar e a duracao prevista, e
+   * o leitor mostra um aviso no lugar dele. Serve para o jovem perceber que ali
+   * vai haver uma historia, em vez de a aula parecer que salta um passo, e
+   * serve para quem monta nao se esquecer de qual e o buraco.
+   *
+   * Com isto ligado, a chave nao precisa de ter entrada em `media`: e o unico
+   * caso em que uma chave pode nao apontar para ficheiro nenhum.
+   */
+  em_breve?: boolean;
 };
 
 export type CartaoCarrossel = {
