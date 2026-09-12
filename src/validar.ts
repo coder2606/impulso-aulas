@@ -13,7 +13,7 @@ import type {
   ResultadoValidacao,
 } from './blocos';
 
-import { NOMES_DE_FERRAMENTA } from './blocos';
+import { NOMES_DE_FERRAMENTA, NOMES_DE_JOGO } from './blocos';
 
 /**
  * Tipos previstos pelo currículo completo. Um tipo que não esteja nesta lista é
@@ -31,6 +31,7 @@ const TIPOS_SUPORTADOS = [
   'quiz',
   'formulario',
   'ferramenta',
+  'jogo',
   'recompensa',
 ] as const;
 
@@ -470,9 +471,180 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     return;
   }
 
+  if (b.tipo === 'jogo') {
+    if (!textoNaoVazio(b.titulo)) erros.push({ caminho: `${c}.titulo`, mensagem: 'titulo em falta' });
+
+    if (typeof b.jogo !== 'string' || !(NOMES_DE_JOGO as readonly string[]).includes(b.jogo)) {
+      erros.push({
+        caminho: `${c}.jogo`,
+        mensagem: `jogo desconhecido: ${String(b.jogo)}. Os disponíveis são ${NOMES_DE_JOGO.join(', ')}`,
+      });
+      return;
+    }
+
+    if (b.momento !== 'antes' && b.momento !== 'depois') {
+      erros.push({ caminho: `${c}.momento`, mensagem: 'momento tem de ser antes ou depois' });
+    }
+
+    for (const campo of ['xp', 'xp_extra'] as const) {
+      const v = b[campo];
+      if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 100) {
+        erros.push({ caminho: `${c}.${campo}`, mensagem: `${campo} tem de ser um inteiro entre 0 e 100` });
+      }
+    }
+
+    if (b.instrucao !== undefined && !textoNaoVazio(b.instrucao)) {
+      erros.push({ caminho: `${c}.instrucao`, mensagem: 'se a instrução existir, não pode ser vazia' });
+    }
+
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
+
+    // A mesma regra da ferramenta, e pela mesma razão: a base de dados só sabe
+    // verificar respostas submetidas, e um jogo não submete nenhuma.
+    if (b.obrigatorio_para_concluir !== undefined) {
+      erros.push({
+        caminho: `${c}.obrigatorio_para_concluir`,
+        mensagem: 'o jogo não pode travar a conclusão. Use um formulário ou uma lista de verificação',
+      });
+    }
+
+    const dados = b.dados;
+    if (!eObjecto(dados)) {
+      erros.push({ caminho: `${c}.dados`, mensagem: 'dados em falta' });
+      return;
+    }
+
+    if (b.jogo === 'separar') validarSeparar(dados, `${c}.dados`, erros);
+    if (b.jogo === 'decidir') validarDecidir(dados, `${c}.dados`, erros);
+    return;
+  }
+
   // recompensa
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: 'medalha em falta' });
   if (typeof b.partilhavel !== 'boolean') erros.push({ caminho: `${c}.partilhavel`, mensagem: 'tem de ser booleano' });
+}
+
+/**
+ * O jogo de separar: grupos com nome, cartões que apontam para um deles, e
+ * nenhum grupo vazio.
+ *
+ * Um grupo sem cartões não é um erro de escrita distraída: é uma coluna que o
+ * jovem vê e nunca consegue encher, e no ecrã parece avaria.
+ */
+function validarSeparar(d: Record<string, unknown>, c: string, erros: ErroValidacao[]): void {
+  const grupos = Array.isArray(d.grupos) ? d.grupos : [];
+  const cartoes = Array.isArray(d.cartoes) ? d.cartoes : [];
+
+  if (grupos.length < 2 || grupos.length > 4) {
+    erros.push({ caminho: `${c}.grupos`, mensagem: 'entre dois e quatro grupos' });
+  }
+  if (cartoes.length < 4 || cartoes.length > 12) {
+    erros.push({ caminho: `${c}.cartoes`, mensagem: 'entre quatro e doze cartões' });
+  }
+
+  const idsDeGrupo = new Set<string>();
+  grupos.forEach((g, i) => {
+    if (!eObjecto(g) || !textoNaoVazio(g.id) || !textoNaoVazio(g.rotulo)) {
+      erros.push({ caminho: `${c}.grupos[${i}]`, mensagem: 'grupo precisa de id e rótulo' });
+      return;
+    }
+    if (idsDeGrupo.has(g.id)) {
+      erros.push({ caminho: `${c}.grupos[${i}].id`, mensagem: `id repetido: ${g.id}` });
+    }
+    idsDeGrupo.add(g.id);
+  });
+
+  const usados = new Set<string>();
+  const idsDeCartao = new Set<string>();
+  cartoes.forEach((k, i) => {
+    if (!eObjecto(k) || !textoNaoVazio(k.id) || !textoNaoVazio(k.texto)) {
+      erros.push({ caminho: `${c}.cartoes[${i}]`, mensagem: 'cartão precisa de id e texto' });
+      return;
+    }
+    if (idsDeCartao.has(k.id)) {
+      erros.push({ caminho: `${c}.cartoes[${i}].id`, mensagem: `id repetido: ${k.id}` });
+    }
+    idsDeCartao.add(k.id);
+    if (!textoNaoVazio(k.grupo) || !idsDeGrupo.has(k.grupo)) {
+      erros.push({
+        caminho: `${c}.cartoes[${i}].grupo`,
+        mensagem: `o grupo ${String(k.grupo)} não existe neste jogo`,
+      });
+      return;
+    }
+    usados.add(k.grupo);
+  });
+
+  for (const g of idsDeGrupo) {
+    if (!usados.has(g)) {
+      erros.push({ caminho: `${c}.grupos`, mensagem: `o grupo ${g} fica sem cartões` });
+    }
+  }
+
+  if (d.porque !== undefined) {
+    if (!eObjecto(d.porque)) {
+      erros.push({ caminho: `${c}.porque`, mensagem: 'porque tem de ser um objecto' });
+    } else {
+      for (const chave of Object.keys(d.porque)) {
+        if (!idsDeCartao.has(chave)) {
+          erros.push({ caminho: `${c}.porque.${chave}`, mensagem: 'não há cartão com este id' });
+        }
+      }
+    }
+  }
+}
+
+/**
+ * O jogo de decidir: rondas com opções, cada uma com o resultado escrito.
+ *
+ * O resultado é um número posto por quem faz a aula, e não uma conta feita na
+ * hora: o conteúdo ensina números concretos de negócios concretos, e uma
+ * expressão avaliada em tempo de execução seria uma segunda fonte de verdade.
+ */
+function validarDecidir(d: Record<string, unknown>, c: string, erros: ErroValidacao[]): void {
+  if (!textoNaoVazio(d.unidade)) {
+    erros.push({ caminho: `${c}.unidade`, mensagem: 'unidade em falta, por exemplo MZN' });
+  }
+
+  const rondas = Array.isArray(d.rondas) ? d.rondas : [];
+  if (rondas.length < 1 || rondas.length > 5) {
+    erros.push({ caminho: `${c}.rondas`, mensagem: 'entre uma e cinco rondas' });
+  }
+
+  rondas.forEach((r, i) => {
+    const cr = `${c}.rondas[${i}]`;
+    if (!eObjecto(r)) {
+      erros.push({ caminho: cr, mensagem: 'ronda inválida' });
+      return;
+    }
+    for (const campo of ['id', 'situacao', 'pergunta'] as const) {
+      if (!textoNaoVazio(r[campo])) {
+        erros.push({ caminho: `${cr}.${campo}`, mensagem: `${campo} em falta` });
+      }
+    }
+
+    const opcoes = Array.isArray(r.opcoes) ? r.opcoes : [];
+    if (opcoes.length < 2 || opcoes.length > 4) {
+      erros.push({ caminho: `${cr}.opcoes`, mensagem: 'entre duas e quatro opções' });
+    }
+
+    const ids = new Set<string>();
+    opcoes.forEach((o, j) => {
+      const co = `${cr}.opcoes[${j}]`;
+      if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.rotulo) || !textoNaoVazio(o.explicacao)) {
+        erros.push({ caminho: co, mensagem: 'a opção precisa de id, rótulo e explicação' });
+        return;
+      }
+      if (typeof o.resultado !== 'number' || !Number.isFinite(o.resultado)) {
+        erros.push({ caminho: `${co}.resultado`, mensagem: 'resultado tem de ser um número' });
+      }
+      ids.add(o.id);
+    });
+
+    if (!textoNaoVazio(r.melhor) || !ids.has(r.melhor)) {
+      erros.push({ caminho: `${cr}.melhor`, mensagem: 'melhor tem de ser o id de uma das opções' });
+    }
+  });
 }
 
 /** Valida o JSON de uma aula e devolve-o tipado, ou a lista completa de erros. */

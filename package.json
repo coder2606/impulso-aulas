@@ -1,6 +1,6 @@
 {
   "name": "impulso-aulas",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Contrato das aulas da plataforma Impulso: os tipos dos blocos e as regras que dizem se uma aula e valida.",
   "license": "MIT",
   "author": "Kobe Designer 7, Lda",
@@ -8,7 +8,12 @@
     "type": "git",
     "url": "git+https://github.com/coder2606/impulso-aulas.git"
   },
-  "keywords": ["impulso", "aulas", "blocos", "validacao"],
+  "keywords": [
+    "impulso",
+    "aulas",
+    "blocos",
+    "validacao"
+  ],
   "type": "module",
   "types": "./dist/index.d.ts",
   "main": "./dist/index.cjs",
@@ -20,9 +25,13 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
-  "engines": { "node": ">=20.9.0" },
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run",

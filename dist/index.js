@@ -9,6 +9,7 @@ var NOMES_DE_FERRAMENTA = [
   "plano-pdf",
   "vitrine"
 ];
+var NOMES_DE_JOGO = ["separar", "decidir"];
 
 // src/validar.ts
 var TIPOS_SUPORTADOS = [
@@ -23,6 +24,7 @@ var TIPOS_SUPORTADOS = [
   "quiz",
   "formulario",
   "ferramenta",
+  "jogo",
   "recompensa"
 ];
 function eObjecto(v) {
@@ -406,8 +408,142 @@ function validarBloco(b, i, chaves, erros) {
     }
     return;
   }
+  if (b.tipo === "jogo") {
+    if (!textoNaoVazio(b.titulo)) erros.push({ caminho: `${c}.titulo`, mensagem: "titulo em falta" });
+    if (typeof b.jogo !== "string" || !NOMES_DE_JOGO.includes(b.jogo)) {
+      erros.push({
+        caminho: `${c}.jogo`,
+        mensagem: `jogo desconhecido: ${String(b.jogo)}. Os dispon\xEDveis s\xE3o ${NOMES_DE_JOGO.join(", ")}`
+      });
+      return;
+    }
+    if (b.momento !== "antes" && b.momento !== "depois") {
+      erros.push({ caminho: `${c}.momento`, mensagem: "momento tem de ser antes ou depois" });
+    }
+    for (const campo of ["xp", "xp_extra"]) {
+      const v = b[campo];
+      if (typeof v !== "number" || !Number.isInteger(v) || v < 0 || v > 100) {
+        erros.push({ caminho: `${c}.${campo}`, mensagem: `${campo} tem de ser um inteiro entre 0 e 100` });
+      }
+    }
+    if (b.instrucao !== void 0 && !textoNaoVazio(b.instrucao)) {
+      erros.push({ caminho: `${c}.instrucao`, mensagem: "se a instru\xE7\xE3o existir, n\xE3o pode ser vazia" });
+    }
+    validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
+    if (b.obrigatorio_para_concluir !== void 0) {
+      erros.push({
+        caminho: `${c}.obrigatorio_para_concluir`,
+        mensagem: "o jogo n\xE3o pode travar a conclus\xE3o. Use um formul\xE1rio ou uma lista de verifica\xE7\xE3o"
+      });
+    }
+    const dados = b.dados;
+    if (!eObjecto(dados)) {
+      erros.push({ caminho: `${c}.dados`, mensagem: "dados em falta" });
+      return;
+    }
+    if (b.jogo === "separar") validarSeparar(dados, `${c}.dados`, erros);
+    if (b.jogo === "decidir") validarDecidir(dados, `${c}.dados`, erros);
+    return;
+  }
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: "medalha em falta" });
   if (typeof b.partilhavel !== "boolean") erros.push({ caminho: `${c}.partilhavel`, mensagem: "tem de ser booleano" });
+}
+function validarSeparar(d, c, erros) {
+  const grupos = Array.isArray(d.grupos) ? d.grupos : [];
+  const cartoes = Array.isArray(d.cartoes) ? d.cartoes : [];
+  if (grupos.length < 2 || grupos.length > 4) {
+    erros.push({ caminho: `${c}.grupos`, mensagem: "entre dois e quatro grupos" });
+  }
+  if (cartoes.length < 4 || cartoes.length > 12) {
+    erros.push({ caminho: `${c}.cartoes`, mensagem: "entre quatro e doze cart\xF5es" });
+  }
+  const idsDeGrupo = /* @__PURE__ */ new Set();
+  grupos.forEach((g, i) => {
+    if (!eObjecto(g) || !textoNaoVazio(g.id) || !textoNaoVazio(g.rotulo)) {
+      erros.push({ caminho: `${c}.grupos[${i}]`, mensagem: "grupo precisa de id e r\xF3tulo" });
+      return;
+    }
+    if (idsDeGrupo.has(g.id)) {
+      erros.push({ caminho: `${c}.grupos[${i}].id`, mensagem: `id repetido: ${g.id}` });
+    }
+    idsDeGrupo.add(g.id);
+  });
+  const usados = /* @__PURE__ */ new Set();
+  const idsDeCartao = /* @__PURE__ */ new Set();
+  cartoes.forEach((k, i) => {
+    if (!eObjecto(k) || !textoNaoVazio(k.id) || !textoNaoVazio(k.texto)) {
+      erros.push({ caminho: `${c}.cartoes[${i}]`, mensagem: "cart\xE3o precisa de id e texto" });
+      return;
+    }
+    if (idsDeCartao.has(k.id)) {
+      erros.push({ caminho: `${c}.cartoes[${i}].id`, mensagem: `id repetido: ${k.id}` });
+    }
+    idsDeCartao.add(k.id);
+    if (!textoNaoVazio(k.grupo) || !idsDeGrupo.has(k.grupo)) {
+      erros.push({
+        caminho: `${c}.cartoes[${i}].grupo`,
+        mensagem: `o grupo ${String(k.grupo)} n\xE3o existe neste jogo`
+      });
+      return;
+    }
+    usados.add(k.grupo);
+  });
+  for (const g of idsDeGrupo) {
+    if (!usados.has(g)) {
+      erros.push({ caminho: `${c}.grupos`, mensagem: `o grupo ${g} fica sem cart\xF5es` });
+    }
+  }
+  if (d.porque !== void 0) {
+    if (!eObjecto(d.porque)) {
+      erros.push({ caminho: `${c}.porque`, mensagem: "porque tem de ser um objecto" });
+    } else {
+      for (const chave of Object.keys(d.porque)) {
+        if (!idsDeCartao.has(chave)) {
+          erros.push({ caminho: `${c}.porque.${chave}`, mensagem: "n\xE3o h\xE1 cart\xE3o com este id" });
+        }
+      }
+    }
+  }
+}
+function validarDecidir(d, c, erros) {
+  if (!textoNaoVazio(d.unidade)) {
+    erros.push({ caminho: `${c}.unidade`, mensagem: "unidade em falta, por exemplo MZN" });
+  }
+  const rondas = Array.isArray(d.rondas) ? d.rondas : [];
+  if (rondas.length < 1 || rondas.length > 5) {
+    erros.push({ caminho: `${c}.rondas`, mensagem: "entre uma e cinco rondas" });
+  }
+  rondas.forEach((r, i) => {
+    const cr = `${c}.rondas[${i}]`;
+    if (!eObjecto(r)) {
+      erros.push({ caminho: cr, mensagem: "ronda inv\xE1lida" });
+      return;
+    }
+    for (const campo of ["id", "situacao", "pergunta"]) {
+      if (!textoNaoVazio(r[campo])) {
+        erros.push({ caminho: `${cr}.${campo}`, mensagem: `${campo} em falta` });
+      }
+    }
+    const opcoes = Array.isArray(r.opcoes) ? r.opcoes : [];
+    if (opcoes.length < 2 || opcoes.length > 4) {
+      erros.push({ caminho: `${cr}.opcoes`, mensagem: "entre duas e quatro op\xE7\xF5es" });
+    }
+    const ids = /* @__PURE__ */ new Set();
+    opcoes.forEach((o, j) => {
+      const co = `${cr}.opcoes[${j}]`;
+      if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.rotulo) || !textoNaoVazio(o.explicacao)) {
+        erros.push({ caminho: co, mensagem: "a op\xE7\xE3o precisa de id, r\xF3tulo e explica\xE7\xE3o" });
+        return;
+      }
+      if (typeof o.resultado !== "number" || !Number.isFinite(o.resultado)) {
+        erros.push({ caminho: `${co}.resultado`, mensagem: "resultado tem de ser um n\xFAmero" });
+      }
+      ids.add(o.id);
+    });
+    if (!textoNaoVazio(r.melhor) || !ids.has(r.melhor)) {
+      erros.push({ caminho: `${cr}.melhor`, mensagem: "melhor tem de ser o id de uma das op\xE7\xF5es" });
+    }
+  });
 }
 function validarAula(valor) {
   const erros = [];
@@ -440,6 +576,33 @@ function blocosObrigatorios(aula) {
 }
 function mediaPorChave(aula) {
   return new Map(aula.media.map((m) => [m.chave, m]));
+}
+
+// src/jogos.ts
+function cartaoCerto(dados, cartaoId, grupoId) {
+  const cartao = dados.cartoes.find((c) => c.id === cartaoId);
+  return cartao !== void 0 && cartao.grupo === grupoId;
+}
+function corrigirSeparar(dados, colocacoes, erros) {
+  const acertos = dados.cartoes.filter((c) => colocacoes[c.id] === c.grupo).length;
+  return {
+    acertos,
+    total: dados.cartoes.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.cartoes.length
+  };
+}
+function corrigirDecidir(dados, escolhas, erros) {
+  const acertos = dados.rondas.filter((r) => escolhas[r.id] === r.melhor).length;
+  return {
+    acertos,
+    total: dados.rondas.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.rondas.length
+  };
+}
+function xpDoJogo(bloco, resultado) {
+  return bloco.xp + (resultado.semFalhas ? bloco.xp_extra : 0);
 }
 
 // src/narracao.ts
@@ -479,6 +642,16 @@ function pedacosDoBloco(bloco) {
       {
         chave: `${bloco.id}.mp3`,
         rotulo: `Ferramenta, ${bloco.titulo}`,
+        texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+        narracao: bloco.narracao
+      }
+    ];
+  }
+  if (bloco.tipo === "jogo") {
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Jogo, ${bloco.titulo}`,
         texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
         narracao: bloco.narracao
       }
@@ -594,7 +767,7 @@ function definirNarracao(aula, chave, valor) {
         )
       };
     }
-    if (bloco.tipo === "ferramenta" || bloco.tipo === "desafio") {
+    if (bloco.tipo === "ferramenta" || bloco.tipo === "desafio" || bloco.tipo === "jogo") {
       return `${bloco.id}.mp3` === chave ? { ...bloco, narracao: valor } : bloco;
     }
     if (bloco.tipo === "checklist") {
@@ -657,12 +830,17 @@ function versaoDoContrato() {
 }
 export {
   NOMES_DE_FERRAMENTA,
+  NOMES_DE_JOGO,
   blocosObrigatorios,
+  cartaoCerto,
+  corrigirDecidir,
+  corrigirSeparar,
   definirNarracao,
   idDaLinhaDaTabela,
   mediaPorChave,
   pedacosNarraveis,
   validarAula,
-  versaoDoContrato
+  versaoDoContrato,
+  xpDoJogo
 };
 //# sourceMappingURL=index.js.map

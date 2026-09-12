@@ -215,7 +215,75 @@ type BlocoRecompensa = {
     medalha: string;
     partilhavel: boolean;
 };
-type Bloco = BlocoVideo | BlocoCarrossel | BlocoPassos | BlocoDesafio | BlocoChecklist | BlocoAudioSlides | BlocoTabela | BlocoAutoavaliacao | BlocoQuiz | BlocoFormulario | BlocoFerramenta | BlocoRecompensa;
+/**
+ * Os jogos que ESTE contrato conhece.
+ *
+ * A lista cresce quando uma mecânica for construída, e nunca antes: um nome
+ * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
+ * mecânicas por fazer vive na especificação, não aqui.
+ */
+declare const NOMES_DE_JOGO: readonly ["separar", "decidir"];
+type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
+type GrupoSeparar = {
+    id: string;
+    rotulo: string;
+};
+type CartaoSeparar = {
+    id: string;
+    texto: string;
+    grupo: string;
+};
+type DadosSeparar = {
+    grupos: GrupoSeparar[];
+    cartoes: CartaoSeparar[];
+    /** Porque é que cada cartão pertence ao seu grupo. Só se mostra depois da lição. */
+    porque?: Record<string, string>;
+};
+type OpcaoDecidir = {
+    id: string;
+    rotulo: string;
+    /** O que sobra ao fim do dia com esta escolha, escrito por quem faz a aula. */
+    resultado: number;
+    explicacao: string;
+};
+type RondaDecidir = {
+    id: string;
+    situacao: string;
+    pergunta: string;
+    opcoes: OpcaoDecidir[];
+    melhor: string;
+};
+type DadosDecidir = {
+    unidade: string;
+    rondas: RondaDecidir[];
+};
+type BlocoJogoBase = {
+    id: string;
+    tipo: 'jogo';
+    /**
+     * Antes da lição é diagnóstico: uma tentativa, sem correcção, e o erro cria a
+     * pergunta a que a aula responde a seguir. Depois é treino: tenta até acertar,
+     * com o porquê. É o mesmo componente com duas vozes.
+     */
+    momento: 'antes' | 'depois';
+    titulo: string;
+    instrucao?: string;
+    narracao?: string;
+    /** Ganha-se por terminar, mesmo errando tudo. */
+    xp: number;
+    /** Junta-se ao anterior para quem acaba sem falhas. */
+    xp_extra: number;
+};
+type BlocoJogoSeparar = BlocoJogoBase & {
+    jogo: 'separar';
+    dados: DadosSeparar;
+};
+type BlocoJogoDecidir = BlocoJogoBase & {
+    jogo: 'decidir';
+    dados: DadosDecidir;
+};
+type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir;
+type Bloco = BlocoVideo | BlocoCarrossel | BlocoPassos | BlocoDesafio | BlocoChecklist | BlocoAudioSlides | BlocoTabela | BlocoAutoavaliacao | BlocoQuiz | BlocoFormulario | BlocoFerramenta | BlocoJogo | BlocoRecompensa;
 type ConteudoAula = {
     versao: 1;
     sessao: string;
@@ -253,6 +321,37 @@ declare function validarAula(valor: unknown): ResultadoValidacao;
 declare function blocosObrigatorios(aula: ConteudoAula): string[];
 /** Indexa a media da aula pela chave, para os blocos resolverem os seus ficheiros. */
 declare function mediaPorChave(aula: ConteudoAula): Map<string, MediaRef>;
+
+/**
+ * A conta de um jogo, feita uma vez e usada nos dois leitores.
+ *
+ * Vive no contrato, e nao em cada aplicacao, pela mesma razao que o validador:
+ * duas implementacoes da mesma conta acabam a dar numeros diferentes, e aqui a
+ * diferenca seria XP a mais ou a menos no bolso de alguem.
+ *
+ * Os `erros` entram de fora porque sao historia, nao estado final: sao as
+ * tentativas falhadas pelo caminho, que o leitor conta enquanto se joga.
+ */
+type ResultadoJogo = {
+    acertos: number;
+    total: number;
+    erros: number;
+    semFalhas: boolean;
+};
+/** Onde o jovem pos cada cartao: id do cartao para id do grupo. */
+type Colocacoes = Record<string, string>;
+/** O que o jovem escolheu em cada ronda: id da ronda para id da opcao. */
+type Escolhas = Record<string, string>;
+declare function cartaoCerto(dados: DadosSeparar, cartaoId: string, grupoId: string): boolean;
+declare function corrigirSeparar(dados: DadosSeparar, colocacoes: Colocacoes, erros: number): ResultadoJogo;
+declare function corrigirDecidir(dados: DadosDecidir, escolhas: Escolhas, erros: number): ResultadoJogo;
+/**
+ * Quanto vale este jogo.
+ *
+ * O servidor faz esta mesma conta antes de somar, e e a dele que manda. Aqui
+ * serve para o leitor poder dizer ao jovem o que ganhou sem esperar pela rede.
+ */
+declare function xpDoJogo(bloco: BlocoJogo, resultado: ResultadoJogo): number;
 
 /**
  * Onde e que uma aula leva voz.
@@ -310,4 +409,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type ConteudoAula, type ErroValidacao, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, type NomeDeFerramenta, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoValidacao, type SlideAudio, blocosObrigatorios, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosSeparar, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };

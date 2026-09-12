@@ -198,6 +198,63 @@ export type BlocoRecompensa = {
   partilhavel: boolean;
 };
 
+/**
+ * Os jogos que ESTE contrato conhece.
+ *
+ * A lista cresce quando uma mecânica for construída, e nunca antes: um nome
+ * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
+ * mecânicas por fazer vive na especificação, não aqui.
+ */
+export const NOMES_DE_JOGO = ['separar', 'decidir'] as const;
+export type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
+
+export type GrupoSeparar = { id: string; rotulo: string };
+export type CartaoSeparar = { id: string; texto: string; grupo: string };
+export type DadosSeparar = {
+  grupos: GrupoSeparar[];
+  cartoes: CartaoSeparar[];
+  /** Porque é que cada cartão pertence ao seu grupo. Só se mostra depois da lição. */
+  porque?: Record<string, string>;
+};
+
+export type OpcaoDecidir = {
+  id: string;
+  rotulo: string;
+  /** O que sobra ao fim do dia com esta escolha, escrito por quem faz a aula. */
+  resultado: number;
+  explicacao: string;
+};
+export type RondaDecidir = {
+  id: string;
+  situacao: string;
+  pergunta: string;
+  opcoes: OpcaoDecidir[];
+  melhor: string;
+};
+export type DadosDecidir = { unidade: string; rondas: RondaDecidir[] };
+
+type BlocoJogoBase = {
+  id: string;
+  tipo: 'jogo';
+  /**
+   * Antes da lição é diagnóstico: uma tentativa, sem correcção, e o erro cria a
+   * pergunta a que a aula responde a seguir. Depois é treino: tenta até acertar,
+   * com o porquê. É o mesmo componente com duas vozes.
+   */
+  momento: 'antes' | 'depois';
+  titulo: string;
+  instrucao?: string;
+  narracao?: string;
+  /** Ganha-se por terminar, mesmo errando tudo. */
+  xp: number;
+  /** Junta-se ao anterior para quem acaba sem falhas. */
+  xp_extra: number;
+};
+
+export type BlocoJogoSeparar = BlocoJogoBase & { jogo: 'separar'; dados: DadosSeparar };
+export type BlocoJogoDecidir = BlocoJogoBase & { jogo: 'decidir'; dados: DadosDecidir };
+export type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir;
+
 export type Bloco =
   | BlocoVideo
   | BlocoCarrossel
@@ -210,6 +267,7 @@ export type Bloco =
   | BlocoQuiz
   | BlocoFormulario
   | BlocoFerramenta
+  | BlocoJogo
   | BlocoRecompensa;
 
 export type ConteudoAula = {

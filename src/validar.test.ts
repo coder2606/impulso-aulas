@@ -787,3 +787,107 @@ describe('narração', () => {
     if (!r.ok) expect(r.erros[0].caminho).toContain('narracao_linhas');
   });
 });
+
+describe('bloco jogo', () => {
+  const separar = () => ({
+    id: 'j1',
+    tipo: 'jogo',
+    jogo: 'separar',
+    momento: 'depois',
+    titulo: 'Onde vai cada dinheiro',
+    xp: 30,
+    xp_extra: 10,
+    dados: {
+      grupos: [
+        { id: 'g1', rotulo: 'Negocio' },
+        { id: 'g2', rotulo: 'Casa' },
+      ],
+      cartoes: [
+        { id: 'c1', texto: 'Farinha para vender', grupo: 'g1' },
+        { id: 'c2', texto: 'Escola do filho', grupo: 'g2' },
+        { id: 'c3', texto: 'Balde da banca', grupo: 'g1' },
+        { id: 'c4', texto: 'Peixe do jantar', grupo: 'g2' },
+      ],
+    },
+  });
+
+  const decidir = () => ({
+    id: 'j2',
+    tipo: 'jogo',
+    jogo: 'decidir',
+    momento: 'antes',
+    titulo: 'Que preco pones',
+    xp: 20,
+    xp_extra: 10,
+    dados: {
+      unidade: 'MZN',
+      rondas: [
+        {
+          id: 'r1',
+          situacao: 'Cada pao custa-te 8.',
+          pergunta: 'Por quanto vendes?',
+          opcoes: [
+            { id: 'o1', rotulo: '7 MZN', resultado: -50, explicacao: 'Perdes.' },
+            { id: 'o2', rotulo: '12 MZN', resultado: 200, explicacao: 'Sobra.' },
+          ],
+          melhor: 'o2',
+        },
+      ],
+    },
+  });
+
+  function comBloco(bloco: unknown) {
+    return validarAula({ ...AULA_VALIDA, blocos: [bloco] });
+  }
+
+  it('aceita um separar bem formado', () => {
+    expect(comBloco(separar()).ok).toBe(true);
+  });
+
+  it('aceita um decidir bem formado', () => {
+    expect(comBloco(decidir()).ok).toBe(true);
+  });
+
+  it('recusa um jogo que o contrato nao conhece', () => {
+    const r = comBloco({ ...separar(), jogo: 'tetris' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('.jogo');
+  });
+
+  it('recusa um momento que nao e antes nem depois', () => {
+    expect(comBloco({ ...separar(), momento: 'meio' }).ok).toBe(false);
+  });
+
+  it('recusa um cartao que aponta para um grupo que nao existe', () => {
+    const b = separar();
+    b.dados.cartoes[0].grupo = 'g9';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa um grupo sem cartoes', () => {
+    const b = separar();
+    b.dados.grupos.push({ id: 'g3', rotulo: 'Vazio' });
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa XP fora de alcance', () => {
+    expect(comBloco({ ...separar(), xp: 500 }).ok).toBe(false);
+  });
+
+  it('recusa um jogo que queira travar a conclusao', () => {
+    expect(comBloco({ ...separar(), obrigatorio_para_concluir: true }).ok).toBe(false);
+  });
+
+  it('recusa um decidir cuja melhor opcao nao existe', () => {
+    const b = decidir();
+    b.dados.rondas[0].melhor = 'o9';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma ronda com uma opcao so', () => {
+    const b = decidir();
+    b.dados.rondas[0].opcoes = [b.dados.rondas[0].opcoes[0]];
+    b.dados.rondas[0].melhor = 'o1';
+    expect(comBloco(b).ok).toBe(false);
+  });
+});

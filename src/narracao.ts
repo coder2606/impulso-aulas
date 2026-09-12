@@ -95,6 +95,20 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
     ];
   }
 
+  if (bloco.tipo === 'jogo') {
+    // Um clipe so, com a instrucao. O que ha dentro do jogo nao se narra: sao
+    // cartoes e numeros que mudam com o que o jovem faz, e uma voz a descreve-los
+    // ficaria sempre a falar do ecra anterior.
+    return [
+      {
+        chave: `${bloco.id}.mp3`,
+        rotulo: `Jogo, ${bloco.titulo}`,
+        texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+        narracao: bloco.narracao,
+      },
+    ];
+  }
+
   if (bloco.tipo === 'desafio') {
     // O prazo e o que se entrega fazem parte do enunciado: um desafio ouvido
     // sem eles deixa o jovem a saber o que fazer e nao ate quando.
@@ -232,7 +246,7 @@ export function definirNarracao(
       };
     }
 
-    if (bloco.tipo === 'ferramenta' || bloco.tipo === 'desafio') {
+    if (bloco.tipo === 'ferramenta' || bloco.tipo === 'desafio' || bloco.tipo === 'jogo') {
       return `${bloco.id}.mp3` === chave ? { ...bloco, narracao: valor } : bloco;
     }
 

@@ -28,6 +28,16 @@ export type {
   BlocoFormulario,
   NomeDeFerramenta,
   BlocoFerramenta,
+  NomeDeJogo,
+  GrupoSeparar,
+  CartaoSeparar,
+  DadosSeparar,
+  OpcaoDecidir,
+  RondaDecidir,
+  DadosDecidir,
+  BlocoJogoSeparar,
+  BlocoJogoDecidir,
+  BlocoJogo,
   BlocoRecompensa,
   Bloco,
   ConteudoAula,
@@ -35,9 +45,12 @@ export type {
   ResultadoValidacao,
 } from "./blocos";
 
-export { NOMES_DE_FERRAMENTA } from "./blocos";
+export { NOMES_DE_FERRAMENTA, NOMES_DE_JOGO } from "./blocos";
 
 export { validarAula, blocosObrigatorios, mediaPorChave } from "./validar";
+
+export type { ResultadoJogo, Colocacoes, Escolhas } from "./jogos";
+export { cartaoCerto, corrigirSeparar, corrigirDecidir, xpDoJogo } from "./jogos";
 
 export type { PedacoNarravel } from "./narracao";
 export { pedacosNarraveis, definirNarracao, idDaLinhaDaTabela } from "./narracao";
