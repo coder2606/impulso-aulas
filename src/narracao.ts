@@ -96,16 +96,37 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
   }
 
   if (bloco.tipo === 'jogo') {
-    // Um clipe so, com a instrucao. O que ha dentro do jogo nao se narra: sao
-    // cartoes e numeros que mudam com o que o jovem faz, e uma voz a descreve-los
-    // ficaria sempre a falar do ecra anterior.
+    // A missao, que se ouve no aviso, e depois uma voz por peca: a carta que
+    // esta a frente, ou a ronda que abriu. Sao as mesmas chaves que a lista de
+    // verificacao ja usa, e por isso o painel de narracao sabe mostra-las sem
+    // aprender nada de novo.
+    const missao = {
+      chave: `${bloco.id}.mp3`,
+      rotulo: `Jogo, ${bloco.titulo}`,
+      texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+      narracao: bloco.narracao,
+    };
+
+    if (bloco.jogo === 'separar') {
+      return [
+        missao,
+        ...bloco.dados.cartoes.map((c, i) => ({
+          chave: `${bloco.id}-${c.id}.mp3`,
+          rotulo: `Jogo, carta ${i + 1}`,
+          texto: c.texto,
+          narracao: c.narracao,
+        })),
+      ];
+    }
+
     return [
-      {
-        chave: `${bloco.id}.mp3`,
-        rotulo: `Jogo, ${bloco.titulo}`,
-        texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
-        narracao: bloco.narracao,
-      },
+      missao,
+      ...bloco.dados.rondas.map((r, i) => ({
+        chave: `${bloco.id}-${r.id}.mp3`,
+        rotulo: `Jogo, ronda ${i + 1}`,
+        texto: `${r.situacao} ${r.pergunta}`,
+        narracao: r.narracao,
+      })),
     ];
   }
 
@@ -246,8 +267,36 @@ export function definirNarracao(
       };
     }
 
-    if (bloco.tipo === 'ferramenta' || bloco.tipo === 'desafio' || bloco.tipo === 'jogo') {
+    if (bloco.tipo === 'ferramenta' || bloco.tipo === 'desafio') {
       return `${bloco.id}.mp3` === chave ? { ...bloco, narracao: valor } : bloco;
+    }
+
+    if (bloco.tipo === 'jogo') {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+
+      if (bloco.jogo === 'separar') {
+        if (!bloco.dados.cartoes.some((c) => `${bloco.id}-${c.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            cartoes: bloco.dados.cartoes.map((c) =>
+              `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c,
+            ),
+          },
+        };
+      }
+
+      if (!bloco.dados.rondas.some((r) => `${bloco.id}-${r.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        dados: {
+          ...bloco.dados,
+          rondas: bloco.dados.rondas.map((r) =>
+            `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r,
+          ),
+        },
+      };
     }
 
     if (bloco.tipo === 'checklist') {

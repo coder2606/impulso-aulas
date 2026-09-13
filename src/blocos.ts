@@ -209,7 +209,8 @@ export const NOMES_DE_JOGO = ['separar', 'decidir'] as const;
 export type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 
 export type GrupoSeparar = { id: string; rotulo: string };
-export type CartaoSeparar = { id: string; texto: string; grupo: string };
+/** A `narracao` é a chave do clipe que se ouve quando esta carta chega à frente. */
+export type CartaoSeparar = { id: string; texto: string; grupo: string; narracao?: string };
 export type DadosSeparar = {
   grupos: GrupoSeparar[];
   cartoes: CartaoSeparar[];
@@ -230,6 +231,8 @@ export type RondaDecidir = {
   pergunta: string;
   opcoes: OpcaoDecidir[];
   melhor: string;
+  /** O clipe que lê a situação e a pergunta, quando a ronda abre. */
+  narracao?: string;
 };
 export type DadosDecidir = { unidade: string; rondas: RondaDecidir[] };
 

@@ -514,8 +514,8 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       return;
     }
 
-    if (b.jogo === 'separar') validarSeparar(dados, `${c}.dados`, erros);
-    if (b.jogo === 'decidir') validarDecidir(dados, `${c}.dados`, erros);
+    if (b.jogo === 'separar') validarSeparar(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === 'decidir') validarDecidir(dados, `${c}.dados`, chaves, erros);
     return;
   }
 
@@ -531,7 +531,12 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
  * Um grupo sem cartões não é um erro de escrita distraída: é uma coluna que o
  * jovem vê e nunca consegue encher, e no ecrã parece avaria.
  */
-function validarSeparar(d: Record<string, unknown>, c: string, erros: ErroValidacao[]): void {
+function validarSeparar(
+  d: Record<string, unknown>,
+  c: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
   const grupos = Array.isArray(d.grupos) ? d.grupos : [];
   const cartoes = Array.isArray(d.cartoes) ? d.cartoes : [];
 
@@ -565,6 +570,7 @@ function validarSeparar(d: Record<string, unknown>, c: string, erros: ErroValida
       erros.push({ caminho: `${c}.cartoes[${i}].id`, mensagem: `id repetido: ${k.id}` });
     }
     idsDeCartao.add(k.id);
+    validarNarracao(k.narracao, `${c}.cartoes[${i}].narracao`, chaves, erros);
     if (!textoNaoVazio(k.grupo) || !idsDeGrupo.has(k.grupo)) {
       erros.push({
         caminho: `${c}.cartoes[${i}].grupo`,
@@ -601,7 +607,12 @@ function validarSeparar(d: Record<string, unknown>, c: string, erros: ErroValida
  * hora: o conteúdo ensina números concretos de negócios concretos, e uma
  * expressão avaliada em tempo de execução seria uma segunda fonte de verdade.
  */
-function validarDecidir(d: Record<string, unknown>, c: string, erros: ErroValidacao[]): void {
+function validarDecidir(
+  d: Record<string, unknown>,
+  c: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
   if (!textoNaoVazio(d.unidade)) {
     erros.push({ caminho: `${c}.unidade`, mensagem: 'unidade em falta, por exemplo MZN' });
   }
@@ -622,6 +633,8 @@ function validarDecidir(d: Record<string, unknown>, c: string, erros: ErroValida
         erros.push({ caminho: `${cr}.${campo}`, mensagem: `${campo} em falta` });
       }
     }
+
+    validarNarracao(r.narracao, `${cr}.narracao`, chaves, erros);
 
     const opcoes = Array.isArray(r.opcoes) ? r.opcoes : [];
     if (opcoes.length < 2 || opcoes.length > 4) {

@@ -228,10 +228,12 @@ type GrupoSeparar = {
     id: string;
     rotulo: string;
 };
+/** A `narracao` é a chave do clipe que se ouve quando esta carta chega à frente. */
 type CartaoSeparar = {
     id: string;
     texto: string;
     grupo: string;
+    narracao?: string;
 };
 type DadosSeparar = {
     grupos: GrupoSeparar[];
@@ -252,6 +254,8 @@ type RondaDecidir = {
     pergunta: string;
     opcoes: OpcaoDecidir[];
     melhor: string;
+    /** O clipe que lê a situação e a pergunta, quando a ronda abre. */
+    narracao?: string;
 };
 type DadosDecidir = {
     unidade: string;

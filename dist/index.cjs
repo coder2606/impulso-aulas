@@ -479,14 +479,14 @@ function validarBloco(b, i, chaves, erros) {
       erros.push({ caminho: `${c}.dados`, mensagem: "dados em falta" });
       return;
     }
-    if (b.jogo === "separar") validarSeparar(dados, `${c}.dados`, erros);
-    if (b.jogo === "decidir") validarDecidir(dados, `${c}.dados`, erros);
+    if (b.jogo === "separar") validarSeparar(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === "decidir") validarDecidir(dados, `${c}.dados`, chaves, erros);
     return;
   }
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: "medalha em falta" });
   if (typeof b.partilhavel !== "boolean") erros.push({ caminho: `${c}.partilhavel`, mensagem: "tem de ser booleano" });
 }
-function validarSeparar(d, c, erros) {
+function validarSeparar(d, c, chaves, erros) {
   const grupos = Array.isArray(d.grupos) ? d.grupos : [];
   const cartoes = Array.isArray(d.cartoes) ? d.cartoes : [];
   if (grupos.length < 2 || grupos.length > 4) {
@@ -517,6 +517,7 @@ function validarSeparar(d, c, erros) {
       erros.push({ caminho: `${c}.cartoes[${i}].id`, mensagem: `id repetido: ${k.id}` });
     }
     idsDeCartao.add(k.id);
+    validarNarracao(k.narracao, `${c}.cartoes[${i}].narracao`, chaves, erros);
     if (!textoNaoVazio(k.grupo) || !idsDeGrupo.has(k.grupo)) {
       erros.push({
         caminho: `${c}.cartoes[${i}].grupo`,
@@ -543,7 +544,7 @@ function validarSeparar(d, c, erros) {
     }
   }
 }
-function validarDecidir(d, c, erros) {
+function validarDecidir(d, c, chaves, erros) {
   if (!textoNaoVazio(d.unidade)) {
     erros.push({ caminho: `${c}.unidade`, mensagem: "unidade em falta, por exemplo MZN" });
   }
@@ -562,6 +563,7 @@ function validarDecidir(d, c, erros) {
         erros.push({ caminho: `${cr}.${campo}`, mensagem: `${campo} em falta` });
       }
     }
+    validarNarracao(r.narracao, `${cr}.narracao`, chaves, erros);
     const opcoes = Array.isArray(r.opcoes) ? r.opcoes : [];
     if (opcoes.length < 2 || opcoes.length > 4) {
       erros.push({ caminho: `${cr}.opcoes`, mensagem: "entre duas e quatro op\xE7\xF5es" });
@@ -686,13 +688,31 @@ function pedacosDoBloco(bloco) {
     ];
   }
   if (bloco.tipo === "jogo") {
+    const missao = {
+      chave: `${bloco.id}.mp3`,
+      rotulo: `Jogo, ${bloco.titulo}`,
+      texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+      narracao: bloco.narracao
+    };
+    if (bloco.jogo === "separar") {
+      return [
+        missao,
+        ...bloco.dados.cartoes.map((c, i) => ({
+          chave: `${bloco.id}-${c.id}.mp3`,
+          rotulo: `Jogo, carta ${i + 1}`,
+          texto: c.texto,
+          narracao: c.narracao
+        }))
+      ];
+    }
     return [
-      {
-        chave: `${bloco.id}.mp3`,
-        rotulo: `Jogo, ${bloco.titulo}`,
-        texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
-        narracao: bloco.narracao
-      }
+      missao,
+      ...bloco.dados.rondas.map((r, i) => ({
+        chave: `${bloco.id}-${r.id}.mp3`,
+        rotulo: `Jogo, ronda ${i + 1}`,
+        texto: `${r.situacao} ${r.pergunta}`,
+        narracao: r.narracao
+      }))
     ];
   }
   if (bloco.tipo === "desafio") {
@@ -805,8 +825,33 @@ function definirNarracao(aula, chave, valor) {
         )
       };
     }
-    if (bloco.tipo === "ferramenta" || bloco.tipo === "desafio" || bloco.tipo === "jogo") {
+    if (bloco.tipo === "ferramenta" || bloco.tipo === "desafio") {
       return `${bloco.id}.mp3` === chave ? { ...bloco, narracao: valor } : bloco;
+    }
+    if (bloco.tipo === "jogo") {
+      if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };
+      if (bloco.jogo === "separar") {
+        if (!bloco.dados.cartoes.some((c) => `${bloco.id}-${c.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            cartoes: bloco.dados.cartoes.map(
+              (c) => `${bloco.id}-${c.id}.mp3` === chave ? { ...c, narracao: valor } : c
+            )
+          }
+        };
+      }
+      if (!bloco.dados.rondas.some((r) => `${bloco.id}-${r.id}.mp3` === chave)) return bloco;
+      return {
+        ...bloco,
+        dados: {
+          ...bloco.dados,
+          rondas: bloco.dados.rondas.map(
+            (r) => `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r
+          )
+        }
+      };
     }
     if (bloco.tipo === "checklist") {
       if (`${bloco.id}.mp3` === chave) return { ...bloco, narracao: valor };

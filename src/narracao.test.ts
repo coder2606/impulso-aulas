@@ -340,3 +340,53 @@ describe('idDaLinhaDaTabela', () => {
     expect(p[1].chave).toBe(`b8-${idDaLinhaDaTabela(0)}.mp3`);
   });
 });
+
+const jogo = {
+  id: 'b9',
+  tipo: 'jogo',
+  jogo: 'separar',
+  momento: 'depois',
+  titulo: 'Ajuda a Nhelete',
+  instrucao: 'Põe cada gasto no envelope certo.',
+  xp: 20,
+  xp_extra: 10,
+  dados: {
+    grupos: [
+      { id: 'g1', rotulo: 'Negócio' },
+      { id: 'g2', rotulo: 'Casa' },
+    ],
+    cartoes: [
+      { id: 'c1', texto: 'Farinha para vender', grupo: 'g1' },
+      { id: 'c2', texto: 'Escola do filho', grupo: 'g2' },
+      { id: 'c3', texto: 'Balde da banca', grupo: 'g1' },
+      { id: 'c4', texto: 'Peixe do jantar', grupo: 'g2' },
+    ],
+  },
+};
+
+describe('jogo', () => {
+  it('lê a missão e depois cada carta', () => {
+    const p = pedacosNarraveis(aula([jogo]));
+    expect(p.map((x) => x.chave)).toEqual([
+      'b9.mp3',
+      'b9-c1.mp3',
+      'b9-c2.mp3',
+      'b9-c3.mp3',
+      'b9-c4.mp3',
+    ]);
+    expect(p[0].texto).toBe('Ajuda a Nhelete. Põe cada gasto no envelope certo.');
+    expect(p[1].texto).toBe('Farinha para vender');
+  });
+
+  it('a voz de uma carta guarda-se dentro da carta', () => {
+    const nova = definirNarracao(aula([jogo]), 'b9-c2.mp3', 'b9-c2.mp3');
+    const b = nova.blocos[0] as unknown as { dados: { cartoes: { narracao?: string }[] } };
+    expect(b.dados.cartoes[1].narracao).toBe('b9-c2.mp3');
+    expect(b.dados.cartoes[0].narracao).toBeUndefined();
+  });
+
+  it('a missão guarda-se no bloco', () => {
+    const nova = definirNarracao(aula([jogo]), 'b9.mp3', 'b9.mp3');
+    expect((nova.blocos[0] as unknown as { narracao?: string }).narracao).toBe('b9.mp3');
+  });
+});
