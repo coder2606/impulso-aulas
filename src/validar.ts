@@ -516,6 +516,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
 
     if (b.jogo === 'separar') validarSeparar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'decidir') validarDecidir(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === 'escada') validarEscada(dados, `${c}.dados`, chaves, erros);
     return;
   }
 
@@ -656,6 +657,89 @@ function validarDecidir(
 
     if (!textoNaoVazio(r.melhor) || !ids.has(r.melhor)) {
       erros.push({ caminho: `${cr}.melhor`, mensagem: 'melhor tem de ser o id de uma das opções' });
+    }
+  });
+}
+
+/**
+ * O jogo da escada: perguntas que valem cada vez mais, e patamares seguros.
+ *
+ * Os prémios têm de subir degrau a degrau. Uma escada que desce a meio deixava
+ * de ser escada, e o número que aparece no ecrã passaria a contradizer o que o
+ * jogo diz que está a acontecer. O último degrau nunca é patamar seguro: no fim
+ * já não há de onde cair, e marcá-lo só criava uma promessa sem efeito.
+ */
+function validarEscada(
+  d: Record<string, unknown>,
+  c: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
+  if (!textoNaoVazio(d.unidade)) {
+    erros.push({ caminho: `${c}.unidade`, mensagem: 'unidade em falta, por exemplo MT' });
+  }
+  if (d.ajuda !== undefined && typeof d.ajuda !== 'boolean') {
+    erros.push({ caminho: `${c}.ajuda`, mensagem: 'ajuda tem de ser verdadeiro ou falso' });
+  }
+
+  const degraus = Array.isArray(d.degraus) ? d.degraus : [];
+  if (degraus.length < 3 || degraus.length > 8) {
+    erros.push({ caminho: `${c}.degraus`, mensagem: 'entre três e oito degraus' });
+  }
+
+  let anterior = 0;
+  degraus.forEach((g, i) => {
+    const cg = `${c}.degraus[${i}]`;
+    if (!eObjecto(g)) {
+      erros.push({ caminho: cg, mensagem: 'degrau inválido' });
+      return;
+    }
+    for (const campo of ['id', 'pergunta'] as const) {
+      if (!textoNaoVazio(g[campo])) {
+        erros.push({ caminho: `${cg}.${campo}`, mensagem: `${campo} em falta` });
+      }
+    }
+
+    validarNarracao(g.narracao, `${cg}.narracao`, chaves, erros);
+
+    if (typeof g.premio !== 'number' || !Number.isFinite(g.premio) || g.premio <= 0) {
+      erros.push({ caminho: `${cg}.premio`, mensagem: 'premio tem de ser um número acima de zero' });
+    } else if (g.premio <= anterior) {
+      erros.push({
+        caminho: `${cg}.premio`,
+        mensagem: `premio tem de ser maior do que o do degrau anterior (${anterior})`,
+      });
+    } else {
+      anterior = g.premio;
+    }
+
+    if (g.seguro !== undefined && typeof g.seguro !== 'boolean') {
+      erros.push({ caminho: `${cg}.seguro`, mensagem: 'seguro tem de ser verdadeiro ou falso' });
+    }
+    if (g.seguro === true && i === degraus.length - 1) {
+      erros.push({
+        caminho: `${cg}.seguro`,
+        mensagem: 'o último degrau não pode ser patamar seguro: já não há de onde cair',
+      });
+    }
+
+    const opcoes = Array.isArray(g.opcoes) ? g.opcoes : [];
+    if (opcoes.length < 3 || opcoes.length > 4) {
+      erros.push({ caminho: `${cg}.opcoes`, mensagem: 'entre três e quatro opções' });
+    }
+
+    const ids = new Set<string>();
+    opcoes.forEach((o, j) => {
+      const co = `${cg}.opcoes[${j}]`;
+      if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.rotulo) || !textoNaoVazio(o.explicacao)) {
+        erros.push({ caminho: co, mensagem: 'a opção precisa de id, rótulo e explicação' });
+        return;
+      }
+      ids.add(o.id);
+    });
+
+    if (!textoNaoVazio(g.certa) || !ids.has(g.certa)) {
+      erros.push({ caminho: `${cg}.certa`, mensagem: 'certa tem de ser o id de uma das opções' });
     }
   });
 }

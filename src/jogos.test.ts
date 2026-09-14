@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { corrigirDecidir, corrigirSeparar, xpDoJogo } from './jogos';
-import type { BlocoJogo, DadosDecidir, DadosSeparar } from './blocos';
+import { bancaDaEscada, corrigirDecidir, corrigirEscada, corrigirSeparar, xpDoJogo } from './jogos';
+import type { BlocoJogo, DadosDecidir, DadosEscada, DadosSeparar } from './blocos';
 
 const SEPARAR: DadosSeparar = {
   grupos: [
@@ -30,6 +30,92 @@ const DECIDIR: DadosDecidir = {
     },
   ],
 };
+
+const ESCADA: DadosEscada = {
+  unidade: 'MT',
+  degraus: [
+    {
+      id: 'd1',
+      pergunta: 'O que é o lucro?',
+      opcoes: [
+        { id: 'a', rotulo: 'Tudo o que entra', explicacao: 'Isso é a venda, não o lucro.' },
+        { id: 'b', rotulo: 'O que sobra depois dos custos', explicacao: 'É isso mesmo.' },
+        { id: 'c', rotulo: 'O que está na caixa', explicacao: 'Na caixa também está o troco.' },
+      ],
+      certa: 'b',
+      premio: 100,
+    },
+    {
+      id: 'd2',
+      pergunta: 'Vendeste por 500 e gastaste 300. Quanto lucraste?',
+      opcoes: [
+        { id: 'a', rotulo: '200 MT', explicacao: 'Certo, 500 menos 300.' },
+        { id: 'b', rotulo: '500 MT', explicacao: 'Esse é o dinheiro que entrou.' },
+        { id: 'c', rotulo: '800 MT', explicacao: 'Somaste em vez de subtrair.' },
+      ],
+      certa: 'a',
+      premio: 300,
+      seguro: true,
+    },
+    {
+      id: 'd3',
+      pergunta: 'O teu salário sai de onde?',
+      opcoes: [
+        { id: 'a', rotulo: 'Da caixa, quando precisas', explicacao: 'Assim come-se o capital.' },
+        { id: 'b', rotulo: 'De um valor combinado à parte', explicacao: 'É esse o envelope.' },
+        { id: 'c', rotulo: 'Do lucro todo', explicacao: 'O negócio fica sem com que crescer.' },
+      ],
+      certa: 'b',
+      premio: 800,
+    },
+  ],
+};
+
+describe('bancaDaEscada', () => {
+  it('sobe a cada resposta certa', () => {
+    expect(bancaDaEscada(ESCADA, { d1: 'b', d2: 'a', d3: 'b' })).toBe(800);
+  });
+
+  it('sem patamar seguro atrás, um erro deixa a zero', () => {
+    expect(bancaDaEscada(ESCADA, { d1: 'a' })).toBe(0);
+  });
+
+  it('o patamar seguro segura a queda', () => {
+    expect(bancaDaEscada(ESCADA, { d1: 'b', d2: 'a', d3: 'a' })).toBe(300);
+  });
+
+  it('quem para a meio fica com o que já tinha', () => {
+    expect(bancaDaEscada(ESCADA, { d1: 'b' })).toBe(100);
+  });
+
+  it('errar no degrau seguro cai ao chão anterior, que ainda não existe', () => {
+    expect(bancaDaEscada(ESCADA, { d1: 'b', d2: 'c' })).toBe(0);
+  });
+
+  it('depois de cair volta a subir', () => {
+    expect(bancaDaEscada(ESCADA, { d1: 'a', d2: 'a', d3: 'b' })).toBe(800);
+  });
+});
+
+describe('corrigirEscada', () => {
+  it('conta as respostas certas', () => {
+    expect(corrigirEscada(ESCADA, { d1: 'b', d2: 'a', d3: 'b' }, 0)).toEqual({
+      acertos: 3,
+      total: 3,
+      erros: 0,
+      semFalhas: true,
+    });
+  });
+
+  it('uma falhada tira o sem falhas', () => {
+    expect(corrigirEscada(ESCADA, { d1: 'b', d2: 'c', d3: 'b' }, 1)).toEqual({
+      acertos: 2,
+      total: 3,
+      erros: 1,
+      semFalhas: false,
+    });
+  });
+});
 
 describe('corrigirSeparar', () => {
   it('conta os cartões no grupo certo', () => {

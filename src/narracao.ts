@@ -119,13 +119,28 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
       ];
     }
 
+    if (bloco.jogo === 'decidir') {
+      return [
+        missao,
+        ...bloco.dados.rondas.map((r, i) => ({
+          chave: `${bloco.id}-${r.id}.mp3`,
+          rotulo: `Jogo, ronda ${i + 1}`,
+          texto: `${r.situacao} ${r.pergunta}`,
+          narracao: r.narracao,
+        })),
+      ];
+    }
+
+    // Na escada le-se a pergunta e as opcoes, como quem apresenta um concurso.
+    // Ler so a pergunta obrigava a passar a vista pelas respostas, e entao o
+    // jogo deixava de servir a quem segue a aula pela voz.
     return [
       missao,
-      ...bloco.dados.rondas.map((r, i) => ({
-        chave: `${bloco.id}-${r.id}.mp3`,
-        rotulo: `Jogo, ronda ${i + 1}`,
-        texto: `${r.situacao} ${r.pergunta}`,
-        narracao: r.narracao,
+      ...bloco.dados.degraus.map((g, i) => ({
+        chave: `${bloco.id}-${g.id}.mp3`,
+        rotulo: `Jogo, pergunta ${i + 1}`,
+        texto: `${g.pergunta} ${g.opcoes.map((o) => o.rotulo).join('. ')}.`,
+        narracao: g.narracao,
       })),
     ];
   }
@@ -287,13 +302,26 @@ export function definirNarracao(
         };
       }
 
-      if (!bloco.dados.rondas.some((r) => `${bloco.id}-${r.id}.mp3` === chave)) return bloco;
+      if (bloco.jogo === 'decidir') {
+        if (!bloco.dados.rondas.some((r) => `${bloco.id}-${r.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            rondas: bloco.dados.rondas.map((r) =>
+              `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r,
+            ),
+          },
+        };
+      }
+
+      if (!bloco.dados.degraus.some((g) => `${bloco.id}-${g.id}.mp3` === chave)) return bloco;
       return {
         ...bloco,
         dados: {
           ...bloco.dados,
-          rondas: bloco.dados.rondas.map((r) =>
-            `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r,
+          degraus: bloco.dados.degraus.map((g) =>
+            `${bloco.id}-${g.id}.mp3` === chave ? { ...g, narracao: valor } : g,
           ),
         },
       };

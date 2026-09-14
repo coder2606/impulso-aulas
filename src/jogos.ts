@@ -1,4 +1,4 @@
-import type { BlocoJogo, DadosDecidir, DadosSeparar } from './blocos';
+import type { BlocoJogo, DadosDecidir, DadosEscada, DadosSeparar } from './blocos';
 
 /**
  * A conta de um jogo, feita uma vez e usada nos dois leitores.
@@ -54,6 +54,50 @@ export function corrigirDecidir(
     erros,
     semFalhas: erros === 0 && acertos === dados.rondas.length,
   };
+}
+
+export function corrigirEscada(
+  dados: DadosEscada,
+  respostas: Escolhas,
+  erros: number,
+): ResultadoJogo {
+  const acertos = dados.degraus.filter((d) => respostas[d.id] === d.certa).length;
+  return {
+    acertos,
+    total: dados.degraus.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.degraus.length,
+  };
+}
+
+/**
+ * Com quanto se fica na banca, subindo a escada com estas respostas.
+ *
+ * A regra e a do jogo de televisao, com uma diferenca de proposito: aqui uma
+ * resposta errada nao acaba o jogo, faz cair ao ultimo patamar seguro e a
+ * escada continua. Numa aula, mandar alguem embora a primeira pergunta falhada
+ * seria tirar-lhe as outras, que sao as que ele ainda podia aprender.
+ *
+ * Um degrau por responder nao conta nem como certo nem como errado: quem parou
+ * a meio fica com o que ja tinha.
+ */
+export function bancaDaEscada(dados: DadosEscada, respostas: Escolhas): number {
+  let banca = 0;
+  let chao = 0;
+
+  for (const degrau of dados.degraus) {
+    const resposta = respostas[degrau.id];
+    if (resposta === undefined) break;
+
+    if (resposta === degrau.certa) {
+      banca = degrau.premio;
+      if (degrau.seguro) chao = degrau.premio;
+    } else {
+      banca = chao;
+    }
+  }
+
+  return banca;
 }
 
 /**

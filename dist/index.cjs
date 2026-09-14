@@ -22,9 +22,11 @@ var index_exports = {};
 __export(index_exports, {
   NOMES_DE_FERRAMENTA: () => NOMES_DE_FERRAMENTA,
   NOMES_DE_JOGO: () => NOMES_DE_JOGO,
+  bancaDaEscada: () => bancaDaEscada,
   blocosObrigatorios: () => blocosObrigatorios,
   cartaoCerto: () => cartaoCerto,
   corrigirDecidir: () => corrigirDecidir,
+  corrigirEscada: () => corrigirEscada,
   corrigirSeparar: () => corrigirSeparar,
   definirNarracao: () => definirNarracao,
   idDaLinhaDaTabela: () => idDaLinhaDaTabela,
@@ -47,7 +49,7 @@ var NOMES_DE_FERRAMENTA = [
   "plano-pdf",
   "vitrine"
 ];
-var NOMES_DE_JOGO = ["separar", "decidir"];
+var NOMES_DE_JOGO = ["separar", "decidir", "escada"];
 
 // src/validar.ts
 var TIPOS_SUPORTADOS = [
@@ -481,6 +483,7 @@ function validarBloco(b, i, chaves, erros) {
     }
     if (b.jogo === "separar") validarSeparar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "decidir") validarDecidir(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === "escada") validarEscada(dados, `${c}.dados`, chaves, erros);
     return;
   }
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: "medalha em falta" });
@@ -585,6 +588,67 @@ function validarDecidir(d, c, chaves, erros) {
     }
   });
 }
+function validarEscada(d, c, chaves, erros) {
+  if (!textoNaoVazio(d.unidade)) {
+    erros.push({ caminho: `${c}.unidade`, mensagem: "unidade em falta, por exemplo MT" });
+  }
+  if (d.ajuda !== void 0 && typeof d.ajuda !== "boolean") {
+    erros.push({ caminho: `${c}.ajuda`, mensagem: "ajuda tem de ser verdadeiro ou falso" });
+  }
+  const degraus = Array.isArray(d.degraus) ? d.degraus : [];
+  if (degraus.length < 3 || degraus.length > 8) {
+    erros.push({ caminho: `${c}.degraus`, mensagem: "entre tr\xEAs e oito degraus" });
+  }
+  let anterior = 0;
+  degraus.forEach((g, i) => {
+    const cg = `${c}.degraus[${i}]`;
+    if (!eObjecto(g)) {
+      erros.push({ caminho: cg, mensagem: "degrau inv\xE1lido" });
+      return;
+    }
+    for (const campo of ["id", "pergunta"]) {
+      if (!textoNaoVazio(g[campo])) {
+        erros.push({ caminho: `${cg}.${campo}`, mensagem: `${campo} em falta` });
+      }
+    }
+    validarNarracao(g.narracao, `${cg}.narracao`, chaves, erros);
+    if (typeof g.premio !== "number" || !Number.isFinite(g.premio) || g.premio <= 0) {
+      erros.push({ caminho: `${cg}.premio`, mensagem: "premio tem de ser um n\xFAmero acima de zero" });
+    } else if (g.premio <= anterior) {
+      erros.push({
+        caminho: `${cg}.premio`,
+        mensagem: `premio tem de ser maior do que o do degrau anterior (${anterior})`
+      });
+    } else {
+      anterior = g.premio;
+    }
+    if (g.seguro !== void 0 && typeof g.seguro !== "boolean") {
+      erros.push({ caminho: `${cg}.seguro`, mensagem: "seguro tem de ser verdadeiro ou falso" });
+    }
+    if (g.seguro === true && i === degraus.length - 1) {
+      erros.push({
+        caminho: `${cg}.seguro`,
+        mensagem: "o \xFAltimo degrau n\xE3o pode ser patamar seguro: j\xE1 n\xE3o h\xE1 de onde cair"
+      });
+    }
+    const opcoes = Array.isArray(g.opcoes) ? g.opcoes : [];
+    if (opcoes.length < 3 || opcoes.length > 4) {
+      erros.push({ caminho: `${cg}.opcoes`, mensagem: "entre tr\xEAs e quatro op\xE7\xF5es" });
+    }
+    const ids = /* @__PURE__ */ new Set();
+    opcoes.forEach((o, j) => {
+      const co = `${cg}.opcoes[${j}]`;
+      if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.rotulo) || !textoNaoVazio(o.explicacao)) {
+        erros.push({ caminho: co, mensagem: "a op\xE7\xE3o precisa de id, r\xF3tulo e explica\xE7\xE3o" });
+        return;
+      }
+      ids.add(o.id);
+    });
+    if (!textoNaoVazio(g.certa) || !ids.has(g.certa)) {
+      erros.push({ caminho: `${cg}.certa`, mensagem: "certa tem de ser o id de uma das op\xE7\xF5es" });
+    }
+  });
+}
 function validarAula(valor) {
   const erros = [];
   if (!eObjecto(valor)) {
@@ -640,6 +704,30 @@ function corrigirDecidir(dados, escolhas, erros) {
     erros,
     semFalhas: erros === 0 && acertos === dados.rondas.length
   };
+}
+function corrigirEscada(dados, respostas, erros) {
+  const acertos = dados.degraus.filter((d) => respostas[d.id] === d.certa).length;
+  return {
+    acertos,
+    total: dados.degraus.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.degraus.length
+  };
+}
+function bancaDaEscada(dados, respostas) {
+  let banca = 0;
+  let chao = 0;
+  for (const degrau of dados.degraus) {
+    const resposta = respostas[degrau.id];
+    if (resposta === void 0) break;
+    if (resposta === degrau.certa) {
+      banca = degrau.premio;
+      if (degrau.seguro) chao = degrau.premio;
+    } else {
+      banca = chao;
+    }
+  }
+  return banca;
 }
 function xpDoJogo(bloco, resultado) {
   return bloco.xp + (resultado.semFalhas ? bloco.xp_extra : 0);
@@ -705,13 +793,24 @@ function pedacosDoBloco(bloco) {
         }))
       ];
     }
+    if (bloco.jogo === "decidir") {
+      return [
+        missao,
+        ...bloco.dados.rondas.map((r, i) => ({
+          chave: `${bloco.id}-${r.id}.mp3`,
+          rotulo: `Jogo, ronda ${i + 1}`,
+          texto: `${r.situacao} ${r.pergunta}`,
+          narracao: r.narracao
+        }))
+      ];
+    }
     return [
       missao,
-      ...bloco.dados.rondas.map((r, i) => ({
-        chave: `${bloco.id}-${r.id}.mp3`,
-        rotulo: `Jogo, ronda ${i + 1}`,
-        texto: `${r.situacao} ${r.pergunta}`,
-        narracao: r.narracao
+      ...bloco.dados.degraus.map((g, i) => ({
+        chave: `${bloco.id}-${g.id}.mp3`,
+        rotulo: `Jogo, pergunta ${i + 1}`,
+        texto: `${g.pergunta} ${g.opcoes.map((o) => o.rotulo).join(". ")}.`,
+        narracao: g.narracao
       }))
     ];
   }
@@ -842,13 +941,25 @@ function definirNarracao(aula, chave, valor) {
           }
         };
       }
-      if (!bloco.dados.rondas.some((r) => `${bloco.id}-${r.id}.mp3` === chave)) return bloco;
+      if (bloco.jogo === "decidir") {
+        if (!bloco.dados.rondas.some((r) => `${bloco.id}-${r.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            rondas: bloco.dados.rondas.map(
+              (r) => `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r
+            )
+          }
+        };
+      }
+      if (!bloco.dados.degraus.some((g) => `${bloco.id}-${g.id}.mp3` === chave)) return bloco;
       return {
         ...bloco,
         dados: {
           ...bloco.dados,
-          rondas: bloco.dados.rondas.map(
-            (r) => `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r
+          degraus: bloco.dados.degraus.map(
+            (g) => `${bloco.id}-${g.id}.mp3` === chave ? { ...g, narracao: valor } : g
           )
         }
       };
@@ -915,9 +1026,11 @@ function versaoDoContrato() {
 0 && (module.exports = {
   NOMES_DE_FERRAMENTA,
   NOMES_DE_JOGO,
+  bancaDaEscada,
   blocosObrigatorios,
   cartaoCerto,
   corrigirDecidir,
+  corrigirEscada,
   corrigirSeparar,
   definirNarracao,
   idDaLinhaDaTabela,

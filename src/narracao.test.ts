@@ -390,3 +390,69 @@ describe('jogo', () => {
     expect((nova.blocos[0] as unknown as { narracao?: string }).narracao).toBe('b9.mp3');
   });
 });
+
+const escada = {
+  id: 'b10',
+  tipo: 'jogo',
+  jogo: 'escada',
+  momento: 'depois',
+  titulo: 'A escada do dinheiro',
+  instrucao: 'Sobe enquanto acertares.',
+  xp: 25,
+  xp_extra: 15,
+  dados: {
+    unidade: 'MT',
+    degraus: [
+      {
+        id: 'd1',
+        pergunta: 'O que é o lucro?',
+        opcoes: [
+          { id: 'a', rotulo: 'Tudo o que entra', explicacao: 'Isso é a venda.' },
+          { id: 'b', rotulo: 'O que sobra dos custos', explicacao: 'É isso.' },
+          { id: 'c', rotulo: 'O que está na caixa', explicacao: 'Lá também está o troco.' },
+        ],
+        certa: 'b',
+        premio: 100,
+      },
+      {
+        id: 'd2',
+        pergunta: 'Quanto lucraste?',
+        opcoes: [
+          { id: 'a', rotulo: '200 MT', explicacao: 'Certo.' },
+          { id: 'b', rotulo: '500 MT', explicacao: 'Esse é o que entrou.' },
+          { id: 'c', rotulo: '800 MT', explicacao: 'Somaste.' },
+        ],
+        certa: 'a',
+        premio: 300,
+      },
+      {
+        id: 'd3',
+        pergunta: 'De onde sai o teu salário?',
+        opcoes: [
+          { id: 'a', rotulo: 'Da caixa', explicacao: 'Come-se o capital.' },
+          { id: 'b', rotulo: 'De um valor à parte', explicacao: 'É esse o envelope.' },
+          { id: 'c', rotulo: 'Do lucro todo', explicacao: 'O negócio não cresce.' },
+        ],
+        certa: 'b',
+        premio: 800,
+      },
+    ],
+  },
+};
+
+describe('jogo da escada', () => {
+  it('lê a missão e depois cada pergunta com as suas opções', () => {
+    const p = pedacosNarraveis(aula([escada]));
+    expect(p.map((x) => x.chave)).toEqual(['b10.mp3', 'b10-d1.mp3', 'b10-d2.mp3', 'b10-d3.mp3']);
+    expect(p[1].texto).toBe(
+      'O que é o lucro? Tudo o que entra. O que sobra dos custos. O que está na caixa.',
+    );
+  });
+
+  it('a voz de um degrau guarda-se dentro do degrau', () => {
+    const nova = definirNarracao(aula([escada]), 'b10-d2.mp3', 'b10-d2.mp3');
+    const b = nova.blocos[0] as unknown as { dados: { degraus: { narracao?: string }[] } };
+    expect(b.dados.degraus[1].narracao).toBe('b10-d2.mp3');
+    expect(b.dados.degraus[0].narracao).toBeUndefined();
+  });
+});

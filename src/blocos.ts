@@ -205,7 +205,7 @@ export type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-export const NOMES_DE_JOGO = ['separar', 'decidir'] as const;
+export const NOMES_DE_JOGO = ['separar', 'decidir', 'escada'] as const;
 export type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 
 export type GrupoSeparar = { id: string; rotulo: string };
@@ -236,6 +236,38 @@ export type RondaDecidir = {
 };
 export type DadosDecidir = { unidade: string; rondas: RondaDecidir[] };
 
+export type OpcaoEscada = {
+  id: string;
+  rotulo: string;
+  /** Porque é que esta resposta está certa ou errada. Lê-se depois de responder. */
+  explicacao: string;
+};
+export type DegrauEscada = {
+  id: string;
+  pergunta: string;
+  opcoes: OpcaoEscada[];
+  /** O `id` da opção certa. */
+  certa: string;
+  /** Quanto passa a valer a banca ao chegar aqui. */
+  premio: number;
+  /**
+   * Patamar seguro: quem passa por aqui nunca desce abaixo deste prémio.
+   *
+   * É o que permite errar sem perder tudo. Sem patamares, uma pergunta falhada
+   * no fim apagava o jogo inteiro, e quem está a aprender desiste aí.
+   */
+  seguro?: boolean;
+  /** O clipe que lê a pergunta e as opções, quando o degrau abre. */
+  narracao?: string;
+};
+export type DadosEscada = {
+  /** A moeda da banca, escrita como se mostra. Por exemplo, `MT`. */
+  unidade: string;
+  degraus: DegrauEscada[];
+  /** Dá direito a cortar duas respostas erradas, uma vez em todo o jogo. */
+  ajuda?: boolean;
+};
+
 type BlocoJogoBase = {
   id: string;
   tipo: 'jogo';
@@ -256,7 +288,8 @@ type BlocoJogoBase = {
 
 export type BlocoJogoSeparar = BlocoJogoBase & { jogo: 'separar'; dados: DadosSeparar };
 export type BlocoJogoDecidir = BlocoJogoBase & { jogo: 'decidir'; dados: DadosDecidir };
-export type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir;
+export type BlocoJogoEscada = BlocoJogoBase & { jogo: 'escada'; dados: DadosEscada };
+export type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada;
 
 export type Bloco =
   | BlocoVideo

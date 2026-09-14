@@ -836,6 +836,56 @@ describe('bloco jogo', () => {
     },
   });
 
+  const escada = () => ({
+    id: 'j3',
+    tipo: 'jogo',
+    jogo: 'escada',
+    momento: 'depois',
+    titulo: 'A escada do dinheiro',
+    xp: 25,
+    xp_extra: 15,
+    dados: {
+      unidade: 'MT',
+      ajuda: true,
+      degraus: [
+        {
+          id: 'd1',
+          pergunta: 'O que e o lucro?',
+          opcoes: [
+            { id: 'a', rotulo: 'Tudo o que entra', explicacao: 'Isso e a venda.' },
+            { id: 'b', rotulo: 'O que sobra dos custos', explicacao: 'E isso.' },
+            { id: 'c', rotulo: 'O que esta na caixa', explicacao: 'La tambem esta o troco.' },
+          ],
+          certa: 'b',
+          premio: 100,
+        },
+        {
+          id: 'd2',
+          pergunta: 'Vendeste 500 e gastaste 300. Quanto lucraste?',
+          opcoes: [
+            { id: 'a', rotulo: '200 MT', explicacao: 'Certo.' },
+            { id: 'b', rotulo: '500 MT', explicacao: 'Esse e o que entrou.' },
+            { id: 'c', rotulo: '800 MT', explicacao: 'Somaste.' },
+          ],
+          certa: 'a',
+          premio: 300,
+          seguro: true,
+        },
+        {
+          id: 'd3',
+          pergunta: 'De onde sai o teu salario?',
+          opcoes: [
+            { id: 'a', rotulo: 'Da caixa', explicacao: 'Come-se o capital.' },
+            { id: 'b', rotulo: 'De um valor a parte', explicacao: 'E esse o envelope.' },
+            { id: 'c', rotulo: 'Do lucro todo', explicacao: 'O negocio nao cresce.' },
+          ],
+          certa: 'b',
+          premio: 800,
+        },
+      ],
+    },
+  });
+
   function comBloco(bloco: unknown) {
     return validarAula({ ...AULA_VALIDA, blocos: [bloco] });
   }
@@ -888,6 +938,48 @@ describe('bloco jogo', () => {
     const b = decidir();
     b.dados.rondas[0].opcoes = [b.dados.rondas[0].opcoes[0]];
     b.dados.rondas[0].melhor = 'o1';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('aceita uma escada bem formada', () => {
+    expect(comBloco(escada()).ok).toBe(true);
+  });
+
+  it('recusa uma escada cujos premios nao sobem', () => {
+    const b = escada();
+    b.dados.degraus[2].premio = 50;
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('premio');
+  });
+
+  it('recusa um patamar seguro no ultimo degrau', () => {
+    const b = escada();
+    b.dados.degraus[2].seguro = true;
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma escada com dois degraus', () => {
+    const b = escada();
+    b.dados.degraus = b.dados.degraus.slice(0, 2);
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa um degrau cuja resposta certa nao existe', () => {
+    const b = escada();
+    b.dados.degraus[0].certa = 'z';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa um degrau com duas opcoes so', () => {
+    const b = escada();
+    b.dados.degraus[0].opcoes = b.dados.degraus[0].opcoes.slice(0, 2);
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma opcao sem explicacao', () => {
+    const b = escada();
+    b.dados.degraus[0].opcoes[0].explicacao = '';
     expect(comBloco(b).ok).toBe(false);
   });
 });

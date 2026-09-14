@@ -35,8 +35,12 @@ export type {
   OpcaoDecidir,
   RondaDecidir,
   DadosDecidir,
+  OpcaoEscada,
+  DegrauEscada,
+  DadosEscada,
   BlocoJogoSeparar,
   BlocoJogoDecidir,
+  BlocoJogoEscada,
   BlocoJogo,
   BlocoRecompensa,
   Bloco,
@@ -50,7 +54,7 @@ export { NOMES_DE_FERRAMENTA, NOMES_DE_JOGO } from "./blocos";
 export { validarAula, blocosObrigatorios, mediaPorChave } from "./validar";
 
 export type { ResultadoJogo, Colocacoes, Escolhas } from "./jogos";
-export { cartaoCerto, corrigirSeparar, corrigirDecidir, xpDoJogo } from "./jogos";
+export { cartaoCerto, corrigirSeparar, corrigirDecidir, corrigirEscada, bancaDaEscada, xpDoJogo } from "./jogos";
 
 export type { PedacoNarravel } from "./narracao";
 export { pedacosNarraveis, definirNarracao, idDaLinhaDaTabela } from "./narracao";

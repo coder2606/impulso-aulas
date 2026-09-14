@@ -222,7 +222,7 @@ type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-declare const NOMES_DE_JOGO: readonly ["separar", "decidir"];
+declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada"];
 type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 type GrupoSeparar = {
     id: string;
@@ -261,6 +261,37 @@ type DadosDecidir = {
     unidade: string;
     rondas: RondaDecidir[];
 };
+type OpcaoEscada = {
+    id: string;
+    rotulo: string;
+    /** Porque é que esta resposta está certa ou errada. Lê-se depois de responder. */
+    explicacao: string;
+};
+type DegrauEscada = {
+    id: string;
+    pergunta: string;
+    opcoes: OpcaoEscada[];
+    /** O `id` da opção certa. */
+    certa: string;
+    /** Quanto passa a valer a banca ao chegar aqui. */
+    premio: number;
+    /**
+     * Patamar seguro: quem passa por aqui nunca desce abaixo deste prémio.
+     *
+     * É o que permite errar sem perder tudo. Sem patamares, uma pergunta falhada
+     * no fim apagava o jogo inteiro, e quem está a aprender desiste aí.
+     */
+    seguro?: boolean;
+    /** O clipe que lê a pergunta e as opções, quando o degrau abre. */
+    narracao?: string;
+};
+type DadosEscada = {
+    /** A moeda da banca, escrita como se mostra. Por exemplo, `MT`. */
+    unidade: string;
+    degraus: DegrauEscada[];
+    /** Dá direito a cortar duas respostas erradas, uma vez em todo o jogo. */
+    ajuda?: boolean;
+};
 type BlocoJogoBase = {
     id: string;
     tipo: 'jogo';
@@ -286,7 +317,11 @@ type BlocoJogoDecidir = BlocoJogoBase & {
     jogo: 'decidir';
     dados: DadosDecidir;
 };
-type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir;
+type BlocoJogoEscada = BlocoJogoBase & {
+    jogo: 'escada';
+    dados: DadosEscada;
+};
+type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada;
 type Bloco = BlocoVideo | BlocoCarrossel | BlocoPassos | BlocoDesafio | BlocoChecklist | BlocoAudioSlides | BlocoTabela | BlocoAutoavaliacao | BlocoQuiz | BlocoFormulario | BlocoFerramenta | BlocoJogo | BlocoRecompensa;
 type ConteudoAula = {
     versao: 1;
@@ -349,6 +384,19 @@ type Escolhas = Record<string, string>;
 declare function cartaoCerto(dados: DadosSeparar, cartaoId: string, grupoId: string): boolean;
 declare function corrigirSeparar(dados: DadosSeparar, colocacoes: Colocacoes, erros: number): ResultadoJogo;
 declare function corrigirDecidir(dados: DadosDecidir, escolhas: Escolhas, erros: number): ResultadoJogo;
+declare function corrigirEscada(dados: DadosEscada, respostas: Escolhas, erros: number): ResultadoJogo;
+/**
+ * Com quanto se fica na banca, subindo a escada com estas respostas.
+ *
+ * A regra e a do jogo de televisao, com uma diferenca de proposito: aqui uma
+ * resposta errada nao acaba o jogo, faz cair ao ultimo patamar seguro e a
+ * escada continua. Numa aula, mandar alguem embora a primeira pergunta falhada
+ * seria tirar-lhe as outras, que sao as que ele ainda podia aprender.
+ *
+ * Um degrau por responder nao conta nem como certo nem como errado: quem parou
+ * a meio fica com o que ja tinha.
+ */
+declare function bancaDaEscada(dados: DadosEscada, respostas: Escolhas): number;
 /**
  * Quanto vale este jogo.
  *
@@ -413,4 +461,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosSeparar, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosEscada, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, bancaDaEscada, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirEscada, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
