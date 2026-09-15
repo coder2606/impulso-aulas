@@ -15,8 +15,129 @@ var NOMES_DE_JOGO = [
   "escada",
   "ordenar",
   "achar-erro",
-  "frase"
+  "frase",
+  "sopa"
 ];
+
+// src/sopa.ts
+var ALFABETO = "ABCDEFGHIJLMNOPQRSTUVXZ";
+function letrasDaPalavra(texto) {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z]/g, "").toUpperCase();
+}
+function ladoDaSopa(dados) {
+  const palavras = dados.palavras.map((p) => letrasDaPalavra(p.texto));
+  const maior = palavras.reduce((m, p) => Math.max(m, p.length), 0);
+  const letras = palavras.reduce((t, p) => t + p.length, 0);
+  const porArea = Math.ceil(Math.sqrt(letras * 2.2));
+  const escolhido = Math.max(8, maior, porArea);
+  return Math.min(12, Math.max(maior, Math.min(12, escolhido)));
+}
+function vazia(lado) {
+  return Array.from({ length: lado }, () => Array.from({ length: lado }, () => null));
+}
+function cabe(grelha, letras, linha, coluna, direccao) {
+  const lado = grelha.length;
+  if (direccao === "horizontal" && coluna + letras.length > lado) return false;
+  if (direccao === "vertical" && linha + letras.length > lado) return false;
+  for (let i = 0; i < letras.length; i++) {
+    const l = direccao === "vertical" ? linha + i : linha;
+    const c = direccao === "horizontal" ? coluna + i : coluna;
+    const posta = grelha[l][c];
+    if (posta !== null && posta !== letras[i]) return false;
+  }
+  return true;
+}
+function por(grelha, letras, linha, coluna, direccao) {
+  for (let i = 0; i < letras.length; i++) {
+    const l = direccao === "vertical" ? linha + i : linha;
+    const c = direccao === "horizontal" ? coluna + i : coluna;
+    grelha[l][c] = letras[i];
+  }
+}
+function montarSopa(dados, sorte = Math.random) {
+  const lado = dados.lado ?? ladoDaSopa(dados);
+  const grelha = vazia(lado);
+  const postas = [];
+  const porOrdem = [...dados.palavras].map((p) => ({ id: p.id, letras: letrasDaPalavra(p.texto) })).sort((a, b) => b.letras.length - a.letras.length);
+  for (const palavra of porOrdem) {
+    if (palavra.letras.length === 0 || palavra.letras.length > lado) continue;
+    let pousada = null;
+    for (let tentativa = 0; tentativa < 120 && pousada === null; tentativa++) {
+      const direccao = sorte() < 0.5 ? "horizontal" : "vertical";
+      const linha = Math.floor(sorte() * lado);
+      const coluna = Math.floor(sorte() * lado);
+      if (cabe(grelha, palavra.letras, linha, coluna, direccao)) {
+        pousada = { linha, coluna, direccao };
+      }
+    }
+    if (pousada === null) {
+      for (const direccao of ["horizontal", "vertical"]) {
+        for (let linha = 0; linha < lado && pousada === null; linha++) {
+          for (let coluna = 0; coluna < lado && pousada === null; coluna++) {
+            if (cabe(grelha, palavra.letras, linha, coluna, direccao)) {
+              pousada = { linha, coluna, direccao };
+            }
+          }
+        }
+        if (pousada !== null) break;
+      }
+    }
+    if (pousada === null) continue;
+    por(grelha, palavra.letras, pousada.linha, pousada.coluna, pousada.direccao);
+    const ultimo = palavra.letras.length - 1;
+    postas.push({
+      id: palavra.id,
+      inicio: { linha: pousada.linha, coluna: pousada.coluna },
+      fim: {
+        linha: pousada.direccao === "vertical" ? pousada.linha + ultimo : pousada.linha,
+        coluna: pousada.direccao === "horizontal" ? pousada.coluna + ultimo : pousada.coluna
+      },
+      direccao: pousada.direccao,
+      letras: palavra.letras
+    });
+  }
+  const caldo = postas.map((p) => p.letras).join("") + ALFABETO;
+  const cheia = grelha.map(
+    (linha) => linha.map((letra) => letra ?? caldo[Math.floor(sorte() * caldo.length)])
+  );
+  return { lado, grelha: cheia, postas };
+}
+function alinhadas(a, b) {
+  if (a.linha === b.linha) return "horizontal";
+  if (a.coluna === b.coluna) return "vertical";
+  return null;
+}
+function acharNaSopa(sopa, a, b) {
+  if (alinhadas(a, b) === null) return null;
+  for (const posta of sopa.postas) {
+    const iguais = posta.inicio.linha === a.linha && posta.inicio.coluna === a.coluna && posta.fim.linha === b.linha && posta.fim.coluna === b.coluna || posta.inicio.linha === b.linha && posta.inicio.coluna === b.coluna && posta.fim.linha === a.linha && posta.fim.coluna === a.coluna;
+    if (iguais) return posta.id;
+  }
+  return null;
+}
+function celulasDoRisco(a, b) {
+  const direccao = alinhadas(a, b);
+  if (direccao === null) return [];
+  const de = direccao === "horizontal" ? Math.min(a.coluna, b.coluna) : Math.min(a.linha, b.linha);
+  const ate = direccao === "horizontal" ? Math.max(a.coluna, b.coluna) : Math.max(a.linha, b.linha);
+  const celulas = [];
+  for (let i = de; i <= ate; i++) {
+    celulas.push(
+      direccao === "horizontal" ? { linha: a.linha, coluna: i } : { linha: i, coluna: a.coluna }
+    );
+  }
+  return celulas;
+}
+function corrigirSopa(dados, achadas, erros) {
+  const ids = new Set(dados.palavras.map((p) => p.id));
+  const acertos = [...new Set(achadas)].filter((id) => ids.has(id)).length;
+  return {
+    acertos,
+    total: dados.palavras.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.palavras.length
+  };
+}
 
 // src/validar.ts
 var TIPOS_SUPORTADOS = [
@@ -465,6 +586,7 @@ function validarBloco(b, i, chaves, erros) {
     if (b.jogo === "ordenar") validarOrdenar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "achar-erro") validarAcharErro(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "frase") validarFrase(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === "sopa") validarSopa(b, dados, `${c}.dados`, c, chaves, erros);
     return;
   }
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: "medalha em falta" });
@@ -568,6 +690,64 @@ function validarDecidir(d, c, chaves, erros) {
       erros.push({ caminho: `${cr}.melhor`, mensagem: "melhor tem de ser o id de uma das op\xE7\xF5es" });
     }
   });
+}
+function validarSopa(b, d, c, cBloco, chaves, erros) {
+  if (b.momento === "antes") {
+    erros.push({
+      caminho: `${cBloco}.momento`,
+      mensagem: "a sopa de letras nao se joga antes da licao: nao ha correccao para esconder"
+    });
+  }
+  const palavras = Array.isArray(d.palavras) ? d.palavras : [];
+  if (palavras.length < 3 || palavras.length > 8) {
+    erros.push({ caminho: `${c}.palavras`, mensagem: "entre tres e oito palavras" });
+  }
+  if (d.lado !== void 0) {
+    if (typeof d.lado !== "number" || !Number.isInteger(d.lado) || d.lado < 8 || d.lado > 12) {
+      erros.push({ caminho: `${c}.lado`, mensagem: "lado tem de ser um inteiro entre 8 e 12" });
+    }
+  }
+  const lado = typeof d.lado === "number" ? d.lado : 12;
+  const ids = /* @__PURE__ */ new Set();
+  const letrasVistas = /* @__PURE__ */ new Set();
+  let totalDeLetras = 0;
+  palavras.forEach((p, i) => {
+    const cp = `${c}.palavras[${i}]`;
+    if (!eObjecto(p) || !textoNaoVazio(p.id) || !textoNaoVazio(p.texto)) {
+      erros.push({ caminho: cp, mensagem: "a palavra precisa de id e texto" });
+      return;
+    }
+    if (ids.has(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: `id repetido: ${p.id}` });
+    ids.add(p.id);
+    const letras = letrasDaPalavra(p.texto);
+    if (letras.length < 3) {
+      erros.push({ caminho: `${cp}.texto`, mensagem: "a palavra precisa de ao menos tres letras" });
+    }
+    if (letras.length > lado) {
+      erros.push({
+        caminho: `${cp}.texto`,
+        mensagem: `a palavra tem ${letras.length} letras e a grelha so tem ${lado} de lado`
+      });
+    }
+    if (letrasVistas.has(letras)) {
+      erros.push({ caminho: `${cp}.texto`, mensagem: "duas palavras iguais na grelha" });
+    }
+    letrasVistas.add(letras);
+    totalDeLetras += letras.length;
+    if (p.significado !== void 0 && !textoNaoVazio(p.significado)) {
+      erros.push({
+        caminho: `${cp}.significado`,
+        mensagem: "se o significado existir, nao pode ser vazio"
+      });
+    }
+    validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
+  });
+  if (totalDeLetras > lado * lado * 0.5) {
+    erros.push({
+      caminho: `${c}.palavras`,
+      mensagem: "palavras a mais para esta grelha: aumenta o lado ou tira palavras"
+    });
+  }
 }
 function validarFrase(d, c, chaves, erros) {
   if (!textoNaoVazio(d.suporte)) {
@@ -965,6 +1145,17 @@ function pedacosDoBloco(bloco) {
         }))
       ];
     }
+    if (bloco.jogo === "sopa") {
+      return [
+        missao,
+        ...bloco.dados.palavras.map((p, i) => ({
+          chave: `${bloco.id}-${p.id}.mp3`,
+          rotulo: `Jogo, palavra ${i + 1}`,
+          texto: p.significado ? `${terminada(p.texto)} ${terminada(p.significado)}` : terminada(p.texto),
+          narracao: p.narracao
+        }))
+      ];
+    }
     if (bloco.jogo === "frase") {
       return [
         missao,
@@ -1149,6 +1340,18 @@ function definirNarracao(aula, chave, valor) {
           }
         };
       }
+      if (bloco.jogo === "sopa") {
+        if (!bloco.dados.palavras.some((p) => `${bloco.id}-${p.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            palavras: bloco.dados.palavras.map(
+              (p) => `${bloco.id}-${p.id}.mp3` === chave ? { ...p, narracao: valor } : p
+            )
+          }
+        };
+      }
       if (bloco.jogo === "frase") {
         if (!bloco.dados.encaixes.some((e) => `${bloco.id}-${e.id}.mp3` === chave)) return bloco;
         return {
@@ -1259,21 +1462,27 @@ export {
   NOMES_DE_JOGO,
   REGRA_DO_MOMENTO,
   aberturaDoJogo,
+  acharNaSopa,
   bancaDaEscada,
   baralharPassos,
   blocosObrigatorios,
   cartaoCerto,
+  celulasDoRisco,
   corrigirAcharErro,
   corrigirDecidir,
   corrigirEscada,
   corrigirFrase,
   corrigirOrdenar,
   corrigirSeparar,
+  corrigirSopa,
   definirNarracao,
   errosDaCena,
   fraseMontada,
   idDaLinhaDaTabela,
+  ladoDaSopa,
+  letrasDaPalavra,
   mediaPorChave,
+  montarSopa,
   passoCerto,
   pedacosNarraveis,
   validarAula,

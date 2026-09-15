@@ -589,6 +589,29 @@ describe('jogo de montar a frase', () => {
     expect(p[2].rotulo).toBe('Jogo, encaixe 2');
   });
 
+  it('a sopa lê a palavra e o que ela quer dizer', () => {
+    const sopa = {
+      id: 'b14',
+      tipo: 'jogo',
+      jogo: 'sopa',
+      momento: 'depois',
+      titulo: 'As palavras da fase',
+      xp: 15,
+      xp_extra: 10,
+      dados: {
+        palavras: [
+          { id: 'w1', texto: 'Capital', significado: 'O dinheiro que fica no negócio.' },
+          { id: 'w2', texto: 'Lucro' },
+          { id: 'w3', texto: 'Cliente' },
+        ],
+      },
+    };
+    const p = pedacosNarraveis(aula([sopa]));
+    expect(p.map((x) => x.chave)).toEqual(['b14.mp3', 'b14-w1.mp3', 'b14-w2.mp3', 'b14-w3.mp3']);
+    expect(p[1].texto).toBe('Capital. O dinheiro que fica no negócio.');
+    expect(p[2].texto).toBe('Lucro.');
+  });
+
   it('a voz de um encaixe guarda-se dentro do encaixe', () => {
     const nova = definirNarracao(aula([frase]), 'b13-e2.mp3', 'b13-e2.mp3');
     const b = nova.blocos[0] as unknown as { dados: { encaixes: { narracao?: string }[] } };

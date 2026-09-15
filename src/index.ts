@@ -45,12 +45,15 @@ export type {
   OpcaoPalavra,
   EncaixeFrase,
   DadosFrase,
+  PalavraDaSopa,
+  DadosSopa,
   BlocoJogoSeparar,
   BlocoJogoDecidir,
   BlocoJogoEscada,
   BlocoJogoOrdenar,
   BlocoJogoAcharErro,
   BlocoJogoFrase,
+  BlocoJogoSopa,
   BlocoJogo,
   BlocoRecompensa,
   Bloco,
@@ -81,6 +84,16 @@ export {
   aberturaDoJogo,
   REGRA_DO_MOMENTO,
 } from "./jogos";
+
+export type { DireccaoDaSopa, Celula, PalavraPosta, Sopa } from "./sopa";
+export {
+  letrasDaPalavra,
+  ladoDaSopa,
+  montarSopa,
+  acharNaSopa,
+  celulasDoRisco,
+  corrigirSopa,
+} from "./sopa";
 
 export type { PedacoNarravel } from "./narracao";
 export { pedacosNarraveis, definirNarracao, idDaLinhaDaTabela } from "./narracao";

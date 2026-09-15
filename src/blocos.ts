@@ -212,6 +212,7 @@ export const NOMES_DE_JOGO = [
   'ordenar',
   'achar-erro',
   'frase',
+  'sopa',
 ] as const;
 export type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 
@@ -393,13 +394,42 @@ export type DadosFrase = {
 };
 
 export type BlocoJogoFrase = BlocoJogoBase & { jogo: 'frase'; dados: DadosFrase };
+
+export type PalavraDaSopa = {
+  id: string;
+  /** A palavra como se escreve, com acentos. Na grelha entra sem eles. */
+  texto: string;
+  /** O que ela quer dizer. Aparece quando a palavra é achada. */
+  significado?: string;
+  /** O clipe que lê a palavra e o que ela quer dizer. */
+  narracao?: string;
+};
+export type DadosSopa = {
+  /**
+   * As palavras a achar, entre três e oito.
+   *
+   * São palavras que a fase já ensinou: isto é revisão, e não vocabulário
+   * novo. Uma palavra que o jovem nunca viu não se acha numa grelha, adivinha-se.
+   */
+  palavras: PalavraDaSopa[];
+  /**
+   * Quantas letras de lado. Entre oito e doze, e por omissão o contrato escolhe.
+   *
+   * Acima de doze as células ficam mais pequenas do que um dedo num telemóvel
+   * de cinco polegadas, que é o que a maior parte deles tem.
+   */
+  lado?: number;
+};
+
+export type BlocoJogoSopa = BlocoJogoBase & { jogo: 'sopa'; dados: DadosSopa };
 export type BlocoJogo =
   | BlocoJogoSeparar
   | BlocoJogoDecidir
   | BlocoJogoEscada
   | BlocoJogoOrdenar
   | BlocoJogoAcharErro
-  | BlocoJogoFrase;
+  | BlocoJogoFrase
+  | BlocoJogoSopa;
 
 export type Bloco =
   | BlocoVideo

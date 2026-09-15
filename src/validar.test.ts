@@ -1213,4 +1213,85 @@ describe('bloco jogo', () => {
     b.dados.suporte = '';
     expect(comBloco(b).ok).toBe(false);
   });
+
+  const sopa = () => ({
+    id: 'j7',
+    tipo: 'jogo',
+    jogo: 'sopa',
+    momento: 'depois',
+    titulo: 'As palavras da fase',
+    xp: 15,
+    xp_extra: 10,
+    dados: {
+      palavras: [
+        { id: 'w1', texto: 'Capital', significado: 'O dinheiro que fica no negocio.' },
+        { id: 'w2', texto: 'Poupanca' },
+        { id: 'w3', texto: 'Lucro' },
+        { id: 'w4', texto: 'Cliente' },
+      ],
+    },
+  });
+
+  it('aceita uma sopa bem formada', () => {
+    expect(comBloco(sopa()).ok).toBe(true);
+  });
+
+  it('recusa uma sopa antes da licao, que nao tem nada para esconder', () => {
+    const b = sopa();
+    b.momento = 'antes';
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('momento');
+  });
+
+  it('recusa uma sopa com duas palavras', () => {
+    const b = sopa();
+    b.dados.palavras = b.dados.palavras.slice(0, 2);
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma palavra de duas letras', () => {
+    const b = sopa();
+    b.dados.palavras[0].texto = 'ir';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma palavra mais comprida do que a grelha', () => {
+    const b = sopa();
+    (b.dados as Record<string, unknown>).lado = 8;
+    b.dados.palavras[0].texto = 'financiamento';
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].mensagem).toContain('grelha');
+  });
+
+  it('recusa duas palavras que na grelha sao a mesma', () => {
+    const b = sopa();
+    b.dados.palavras[1].texto = 'capital';
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].mensagem).toContain('iguais');
+  });
+
+  it('recusa um lado fora do que cabe no ecra', () => {
+    const b = sopa();
+    (b.dados as Record<string, unknown>).lado = 20;
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa palavras a mais para a grelha que tem', () => {
+    const b = sopa();
+    (b.dados as Record<string, unknown>).lado = 8;
+    b.dados.palavras = [
+      { id: 'w1', texto: 'orcamento', significado: undefined },
+      { id: 'w2', texto: 'poupanca', significado: undefined },
+      { id: 'w3', texto: 'capital', significado: undefined },
+      { id: 'w4', texto: 'cliente', significado: undefined },
+      { id: 'w5', texto: 'salario', significado: undefined },
+      { id: 'w6', texto: 'caderno', significado: undefined },
+    ] as typeof b.dados.palavras;
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros.some((e) => e.mensagem.includes('a mais'))).toBe(true);
+  });
 });

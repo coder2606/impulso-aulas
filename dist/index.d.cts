@@ -222,7 +222,7 @@ type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada", "ordenar", "achar-erro", "frase"];
+declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada", "ordenar", "achar-erro", "frase", "sopa"];
 type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 type GrupoSeparar = {
     id: string;
@@ -423,7 +423,36 @@ type BlocoJogoFrase = BlocoJogoBase & {
     jogo: 'frase';
     dados: DadosFrase;
 };
-type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada | BlocoJogoOrdenar | BlocoJogoAcharErro | BlocoJogoFrase;
+type PalavraDaSopa = {
+    id: string;
+    /** A palavra como se escreve, com acentos. Na grelha entra sem eles. */
+    texto: string;
+    /** O que ela quer dizer. Aparece quando a palavra é achada. */
+    significado?: string;
+    /** O clipe que lê a palavra e o que ela quer dizer. */
+    narracao?: string;
+};
+type DadosSopa = {
+    /**
+     * As palavras a achar, entre três e oito.
+     *
+     * São palavras que a fase já ensinou: isto é revisão, e não vocabulário
+     * novo. Uma palavra que o jovem nunca viu não se acha numa grelha, adivinha-se.
+     */
+    palavras: PalavraDaSopa[];
+    /**
+     * Quantas letras de lado. Entre oito e doze, e por omissão o contrato escolhe.
+     *
+     * Acima de doze as células ficam mais pequenas do que um dedo num telemóvel
+     * de cinco polegadas, que é o que a maior parte deles tem.
+     */
+    lado?: number;
+};
+type BlocoJogoSopa = BlocoJogoBase & {
+    jogo: 'sopa';
+    dados: DadosSopa;
+};
+type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada | BlocoJogoOrdenar | BlocoJogoAcharErro | BlocoJogoFrase | BlocoJogoSopa;
 type Bloco = BlocoVideo | BlocoCarrossel | BlocoPassos | BlocoDesafio | BlocoChecklist | BlocoAudioSlides | BlocoTabela | BlocoAutoavaliacao | BlocoQuiz | BlocoFormulario | BlocoFerramenta | BlocoJogo | BlocoRecompensa;
 type ConteudoAula = {
     versao: 1;
@@ -573,6 +602,89 @@ declare function bancaDaEscada(dados: DadosEscada, respostas: Escolhas): number;
 declare function xpDoJogo(bloco: BlocoJogo, resultado: ResultadoJogo): number;
 
 /**
+ * A grelha da sopa de letras, montada a partir das palavras.
+ *
+ * A grelha nao se escreve a mao no JSON da aula, de proposito. Quem monta a
+ * aula escreve as palavras e mais nada: uma grelha escrita a mao e doze linhas
+ * de letras onde ninguem ve um erro, e onde mudar uma palavra obriga a
+ * redesenhar tudo. Aqui as palavras sao os dados e a grelha e uma consequencia.
+ *
+ * Vive no contrato, e nao em cada leitor, pela mesma razao que a correccao: a
+ * grelha e o que o jovem ve no telemovel, o que ve no browser e o que o
+ * construtor mostra a quem escreve. Tres montagens dariam tres grelhas
+ * diferentes para a mesma aula.
+ */
+/** So horizontal e vertical. Diagonais num ecra de telemovel sao cacadas as cegas. */
+type DireccaoDaSopa = 'horizontal' | 'vertical';
+type Celula = {
+    linha: number;
+    coluna: number;
+};
+type PalavraPosta = {
+    id: string;
+    /** Onde comeca a palavra. */
+    inicio: Celula;
+    /** Onde acaba. E a celula da ultima letra, e nao a seguinte. */
+    fim: Celula;
+    direccao: DireccaoDaSopa;
+    /** As letras como foram postas: maiusculas e sem acentos. */
+    letras: string;
+};
+type Sopa = {
+    lado: number;
+    /** As letras, linha a linha. */
+    grelha: string[][];
+    postas: PalavraPosta[];
+};
+/**
+ * A palavra como ela vive na grelha: maiusculas, sem acentos, sem espacos.
+ *
+ * «Preco» e «preço» tem de ser a mesma coisa na grelha, senao o C cedilhado
+ * ficava numa celula sozinho e a palavra nunca se achava. O que se mostra na
+ * lista continua a ser o que quem escreveu a aula escreveu.
+ */
+declare function letrasDaPalavra(texto: string): string;
+/**
+ * Quantas letras de lado, quando a aula nao diz.
+ *
+ * Tem de caber a palavra mais comprida e sobrar espaco para as outras nao se
+ * atropelarem todas. O tecto e doze porque acima disso a celula fica mais
+ * pequena do que um dedo.
+ */
+declare function ladoDaSopa(dados: DadosSopa): number;
+/**
+ * Monta a grelha.
+ *
+ * Tenta ao acaso um numero de vezes e, se nao acertar, varre a grelha por
+ * ordem e fica no primeiro sitio que sirva. A varredura e o que garante que
+ * isto nunca sai sem uma palavra: uma sopa a que falte uma das palavras da
+ * lista e um jogo que nao se pode acabar.
+ *
+ * A fonte de sorte entra de fora para os testes poderem fixa-la, e para o
+ * construtor poder mostrar sempre a mesma grelha enquanto se escreve.
+ */
+declare function montarSopa(dados: DadosSopa, sorte?: () => number): Sopa;
+/**
+ * Que palavra e que este risco apanhou, se apanhou alguma.
+ *
+ * O risco tem de bater certo com a palavra inteira, de ponta a ponta, e nao
+ * com um pedaco dela. Serve nos dois sentidos: quem risca da ultima letra para
+ * a primeira achou a palavra na mesma, e dizer-lhe que nao seria uma regra que
+ * ninguem percebia.
+ */
+declare function acharNaSopa(sopa: Sopa, a: Celula, b: Celula): string | null;
+/** As celulas que um risco cobre, do principio ao fim. */
+declare function celulasDoRisco(a: Celula, b: Celula): Celula[];
+/**
+ * A conta da sopa.
+ *
+ * Os erros sao os riscos dados que nao apanharam palavra nenhuma. Nao ha
+ * penalizacao por procurar: quem risca a esmo acaba a sopa na mesma, so nao
+ * leva o extra de a ter feito sem falhar.
+ */
+declare function corrigirSopa(dados: DadosSopa, achadas: string[], erros: number): ResultadoJogo;
+
+/**
  * Onde e que uma aula leva voz.
  *
  * Vive no contrato, e nao no guiao que grava nem no construtor do dashboard,
@@ -628,4 +740,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoAcharErro, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoFrase, type BlocoJogoOrdenar, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosAcharErro, type DadosDecidir, type DadosEscada, type DadosFrase, type DadosOrdenar, type DadosSeparar, type DegrauEscada, type EncaixeFrase, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemCena, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoPalavra, type OpcaoQuiz, type Ordem, type Passo, type PassoOrdenar, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, baralharPassos, blocosObrigatorios, cartaoCerto, corrigirAcharErro, corrigirDecidir, corrigirEscada, corrigirFrase, corrigirOrdenar, corrigirSeparar, definirNarracao, errosDaCena, fraseMontada, idDaLinhaDaTabela, mediaPorChave, passoCerto, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoAcharErro, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoFrase, type BlocoJogoOrdenar, type BlocoJogoSeparar, type BlocoJogoSopa, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Celula, type Colocacoes, type ConteudoAula, type DadosAcharErro, type DadosDecidir, type DadosEscada, type DadosFrase, type DadosOrdenar, type DadosSeparar, type DadosSopa, type DegrauEscada, type DireccaoDaSopa, type EncaixeFrase, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemCena, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoPalavra, type OpcaoQuiz, type Ordem, type PalavraDaSopa, type PalavraPosta, type Passo, type PassoOrdenar, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, type Sopa, aberturaDoJogo, acharNaSopa, bancaDaEscada, baralharPassos, blocosObrigatorios, cartaoCerto, celulasDoRisco, corrigirAcharErro, corrigirDecidir, corrigirEscada, corrigirFrase, corrigirOrdenar, corrigirSeparar, corrigirSopa, definirNarracao, errosDaCena, fraseMontada, idDaLinhaDaTabela, ladoDaSopa, letrasDaPalavra, mediaPorChave, montarSopa, passoCerto, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };

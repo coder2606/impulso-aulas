@@ -134,6 +134,20 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
       ];
     }
 
+    if (bloco.jogo === 'sopa') {
+      // Le-se a palavra e o que ela quer dizer. Quem nao le depressa precisa
+      // de ouvir o que anda a procurar, e a revisao esta no significado.
+      return [
+        missao,
+        ...bloco.dados.palavras.map((p, i) => ({
+          chave: `${bloco.id}-${p.id}.mp3`,
+          rotulo: `Jogo, palavra ${i + 1}`,
+          texto: p.significado ? `${terminada(p.texto)} ${terminada(p.significado)}` : terminada(p.texto),
+          narracao: p.narracao,
+        })),
+      ];
+    }
+
     if (bloco.jogo === 'frase') {
       // Le-se o que o encaixe pede e depois os pedacos a escolha, como quem
       // oferece palavras. So o rotulo deixava quem ouve sem saber entre o que.
@@ -359,6 +373,19 @@ export function definirNarracao(
             ...bloco.dados,
             rondas: bloco.dados.rondas.map((r) =>
               `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r,
+            ),
+          },
+        };
+      }
+
+      if (bloco.jogo === 'sopa') {
+        if (!bloco.dados.palavras.some((p) => `${bloco.id}-${p.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            palavras: bloco.dados.palavras.map((p) =>
+              `${bloco.id}-${p.id}.mp3` === chave ? { ...p, narracao: valor } : p,
             ),
           },
         };

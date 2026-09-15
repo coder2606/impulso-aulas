@@ -14,6 +14,7 @@ import type {
 } from './blocos';
 
 import { NOMES_DE_FERRAMENTA, NOMES_DE_JOGO } from './blocos';
+import { letrasDaPalavra } from './sopa';
 
 /**
  * Tipos previstos pelo currículo completo. Um tipo que não esteja nesta lista é
@@ -535,6 +536,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (b.jogo === 'ordenar') validarOrdenar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'achar-erro') validarAcharErro(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'frase') validarFrase(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === 'sopa') validarSopa(b, dados, `${c}.dados`, c, chaves, erros);
     return;
   }
 
@@ -677,6 +679,91 @@ function validarDecidir(
       erros.push({ caminho: `${cr}.melhor`, mensagem: 'melhor tem de ser o id de uma das opções' });
     }
   });
+}
+
+/**
+ * A sopa de letras: palavras que a fase ja ensinou, escondidas numa grelha.
+ *
+ * Duas regras que nao se adivinham. A primeira: a sopa nao pode ser jogo de
+ * antes da licao. Achar uma palavra numa grelha ou se acha ou nao se acha, e
+ * nao ha nada para esconder; um jogo de antes promete ao jovem que nao lhe diz
+ * se acertou, e aqui essa promessa era mentira. A segunda: as letras da grelha
+ * sao sem acentos, e por isso as palavras validam-se pelas letras que
+ * sobrevivem a isso.
+ */
+function validarSopa(
+  b: Record<string, unknown>,
+  d: Record<string, unknown>,
+  c: string,
+  cBloco: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
+  if (b.momento === 'antes') {
+    erros.push({
+      caminho: `${cBloco}.momento`,
+      mensagem: 'a sopa de letras nao se joga antes da licao: nao ha correccao para esconder',
+    });
+  }
+
+  const palavras = Array.isArray(d.palavras) ? d.palavras : [];
+  if (palavras.length < 3 || palavras.length > 8) {
+    erros.push({ caminho: `${c}.palavras`, mensagem: 'entre tres e oito palavras' });
+  }
+
+  if (d.lado !== undefined) {
+    if (typeof d.lado !== 'number' || !Number.isInteger(d.lado) || d.lado < 8 || d.lado > 12) {
+      erros.push({ caminho: `${c}.lado`, mensagem: 'lado tem de ser um inteiro entre 8 e 12' });
+    }
+  }
+  const lado = typeof d.lado === 'number' ? d.lado : 12;
+
+  const ids = new Set<string>();
+  const letrasVistas = new Set<string>();
+  let totalDeLetras = 0;
+
+  palavras.forEach((p, i) => {
+    const cp = `${c}.palavras[${i}]`;
+    if (!eObjecto(p) || !textoNaoVazio(p.id) || !textoNaoVazio(p.texto)) {
+      erros.push({ caminho: cp, mensagem: 'a palavra precisa de id e texto' });
+      return;
+    }
+    if (ids.has(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: `id repetido: ${p.id}` });
+    ids.add(p.id);
+
+    const letras = letrasDaPalavra(p.texto);
+    if (letras.length < 3) {
+      erros.push({ caminho: `${cp}.texto`, mensagem: 'a palavra precisa de ao menos tres letras' });
+    }
+    if (letras.length > lado) {
+      erros.push({
+        caminho: `${cp}.texto`,
+        mensagem: `a palavra tem ${letras.length} letras e a grelha so tem ${lado} de lado`,
+      });
+    }
+    if (letrasVistas.has(letras)) {
+      erros.push({ caminho: `${cp}.texto`, mensagem: 'duas palavras iguais na grelha' });
+    }
+    letrasVistas.add(letras);
+    totalDeLetras += letras.length;
+
+    if (p.significado !== undefined && !textoNaoVazio(p.significado)) {
+      erros.push({
+        caminho: `${cp}.significado`,
+        mensagem: 'se o significado existir, nao pode ser vazio',
+      });
+    }
+    validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
+  });
+
+  // Meia grelha cheia de palavras deixa de ter enchimento onde esconde-las, e
+  // a sopa passa a ler-se de uma vista de olhos.
+  if (totalDeLetras > lado * lado * 0.5) {
+    erros.push({
+      caminho: `${c}.palavras`,
+      mensagem: 'palavras a mais para esta grelha: aumenta o lado ou tira palavras',
+    });
+  }
 }
 
 /**
