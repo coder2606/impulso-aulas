@@ -1133,4 +1133,84 @@ describe('bloco jogo', () => {
     b.dados.cena = '';
     expect(comBloco(b).ok).toBe(false);
   });
+
+  const frase = () => ({
+    id: 'j6',
+    tipo: 'jogo',
+    jogo: 'frase',
+    momento: 'depois',
+    titulo: 'Monta o anuncio',
+    xp: 20,
+    xp_extra: 10,
+    dados: {
+      suporte: 'A tua publicacao no WhatsApp',
+      encaixes: [
+        {
+          id: 'e1',
+          rotulo: 'O que e',
+          opcoes: [
+            { id: 'a', texto: 'Tenho coisas boas a venda.', porque: 'Coisas boas nao diz nada.' },
+            { id: 'b', texto: 'Chegaram bolos de coco feitos hoje.' },
+          ],
+          melhor: 'b',
+        },
+        {
+          id: 'e2',
+          rotulo: 'Quanto custa',
+          opcoes: [
+            { id: 'a', texto: 'Preco bom.' },
+            { id: 'b', texto: '25 meticais cada um.' },
+          ],
+          melhor: 'b',
+        },
+        {
+          id: 'e3',
+          rotulo: 'Como comprar',
+          opcoes: [
+            { id: 'a', texto: 'Manda mensagem ate as seis.' },
+            { id: 'b', texto: 'Quem quiser que apareca.' },
+          ],
+          melhor: 'a',
+        },
+      ],
+    },
+  });
+
+  it('aceita uma frase bem formada', () => {
+    expect(comBloco(frase()).ok).toBe(true);
+  });
+
+  it('recusa uma frase com dois encaixes', () => {
+    const b = frase();
+    b.dados.encaixes = b.dados.encaixes.slice(0, 2);
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa um encaixe cujo melhor nao e nenhum dos pedacos', () => {
+    const b = frase();
+    b.dados.encaixes[0].melhor = 'z';
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('melhor');
+  });
+
+  it('recusa dois pedacos iguais no mesmo encaixe', () => {
+    const b = frase();
+    b.dados.encaixes[1].opcoes[0].texto = ' 25 Meticais cada um. ';
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('texto');
+  });
+
+  it('recusa um encaixe com um pedaco so', () => {
+    const b = frase();
+    b.dados.encaixes[0].opcoes = b.dados.encaixes[0].opcoes.slice(0, 1);
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma frase sem suporte', () => {
+    const b = frase();
+    b.dados.suporte = '';
+    expect(comBloco(b).ok).toBe(false);
+  });
 });

@@ -537,3 +537,62 @@ describe('jogo de achar o erro', () => {
     expect(b.dados.itens[0].narracao).toBeUndefined();
   });
 });
+
+const frase = {
+  id: 'b13',
+  tipo: 'jogo',
+  jogo: 'frase',
+  momento: 'depois',
+  titulo: 'Monta o anúncio',
+  instrucao: 'Escolhe as palavras que fazem alguém responder.',
+  xp: 20,
+  xp_extra: 10,
+  dados: {
+    suporte: 'A tua publicação no WhatsApp',
+    encaixes: [
+      {
+        id: 'e1',
+        rotulo: 'O que é',
+        opcoes: [
+          { id: 'a', texto: 'Tenho coisas boas à venda.' },
+          { id: 'b', texto: 'Chegaram bolos de coco feitos hoje.' },
+        ],
+        melhor: 'b',
+      },
+      {
+        id: 'e2',
+        rotulo: 'Quanto custa',
+        opcoes: [
+          { id: 'a', texto: 'Preço bom.' },
+          { id: 'b', texto: '25 meticais cada um.' },
+        ],
+        melhor: 'b',
+      },
+      {
+        id: 'e3',
+        rotulo: 'Como comprar',
+        opcoes: [
+          { id: 'a', texto: 'Manda mensagem até às seis.' },
+          { id: 'b', texto: 'Quem quiser que apareça.' },
+        ],
+        melhor: 'a',
+      },
+    ],
+  },
+};
+
+describe('jogo de montar a frase', () => {
+  it('lê o que o encaixe pede e depois os pedaços à escolha', () => {
+    const p = pedacosNarraveis(aula([frase]));
+    expect(p.map((x) => x.chave)).toEqual(['b13.mp3', 'b13-e1.mp3', 'b13-e2.mp3', 'b13-e3.mp3']);
+    expect(p[2].texto).toBe('Quanto custa. Preço bom. 25 meticais cada um.');
+    expect(p[2].rotulo).toBe('Jogo, encaixe 2');
+  });
+
+  it('a voz de um encaixe guarda-se dentro do encaixe', () => {
+    const nova = definirNarracao(aula([frase]), 'b13-e2.mp3', 'b13-e2.mp3');
+    const b = nova.blocos[0] as unknown as { dados: { encaixes: { narracao?: string }[] } };
+    expect(b.dados.encaixes[1].narracao).toBe('b13-e2.mp3');
+    expect(b.dados.encaixes[0].narracao).toBeUndefined();
+  });
+});

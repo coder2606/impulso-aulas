@@ -3,6 +3,7 @@ import type {
   DadosAcharErro,
   DadosDecidir,
   DadosEscada,
+  DadosFrase,
   DadosOrdenar,
   DadosSeparar,
   PassoOrdenar,
@@ -30,7 +31,7 @@ export const REGRA_DO_MOMENTO: Record<'antes' | 'depois', string> = {
 };
 
 /** Uma regra sem ponto final sai colada à seguinte quando é lida em voz alta. */
-function terminada(linha: string): string {
+export function terminada(linha: string): string {
   return /[.!?]$/.test(linha.trim()) ? linha.trim() : `${linha.trim()}.`;
 }
 
@@ -142,6 +143,35 @@ export function corrigirOrdenar(
     total: dados.passos.length,
     erros,
     semFalhas: erros === 0 && acertos === dados.passos.length,
+  };
+}
+
+/**
+ * A frase montada, tal como se le.
+ *
+ * Os pedacos por escolher ficam de fora: enquanto se joga, a frase cresce e e
+ * isso que se ve em cima do tabuleiro. Vive aqui e nao em cada leitor porque a
+ * frase tambem e o que se guarda e o que se le em voz alta no fim, e tres
+ * maneiras de a juntar dariam tres frases diferentes.
+ */
+export function fraseMontada(dados: DadosFrase, escolhas: Escolhas): string {
+  return dados.encaixes
+    .map((e) => e.opcoes.find((o) => o.id === escolhas[e.id])?.texto)
+    .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+    .join(' ');
+}
+
+export function corrigirFrase(
+  dados: DadosFrase,
+  escolhas: Escolhas,
+  erros: number,
+): ResultadoJogo {
+  const acertos = dados.encaixes.filter((e) => escolhas[e.id] === e.melhor).length;
+  return {
+    acertos,
+    total: dados.encaixes.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.encaixes.length,
   };
 }
 

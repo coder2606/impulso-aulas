@@ -8,7 +8,7 @@
  * primeira vez que alguem mexesse num dos lados.
  */
 import type { Bloco, ConteudoAula } from './blocos';
-import { aberturaDoJogo } from './jogos';
+import { aberturaDoJogo, terminada } from './jogos';
 
 export type PedacoNarravel = {
   /** O nome que o ficheiro deve ter, derivado de onde o pedaco vive. */
@@ -130,6 +130,22 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
           rotulo: `Jogo, ronda ${i + 1}`,
           texto: `${r.situacao} ${r.pergunta}`,
           narracao: r.narracao,
+        })),
+      ];
+    }
+
+    if (bloco.jogo === 'frase') {
+      // Le-se o que o encaixe pede e depois os pedacos a escolha, como quem
+      // oferece palavras. So o rotulo deixava quem ouve sem saber entre o que.
+      return [
+        missao,
+        ...bloco.dados.encaixes.map((e, i) => ({
+          chave: `${bloco.id}-${e.id}.mp3`,
+          rotulo: `Jogo, encaixe ${i + 1}`,
+          // Os pedacos ja vem escritos com a pontuacao deles, ao contrario dos
+          // rotulos das outras mecanicas. Juntar com ponto punha dois.
+          texto: [e.rotulo, ...e.opcoes.map((o) => o.texto)].map(terminada).join(' '),
+          narracao: e.narracao,
         })),
       ];
     }
@@ -343,6 +359,19 @@ export function definirNarracao(
             ...bloco.dados,
             rondas: bloco.dados.rondas.map((r) =>
               `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r,
+            ),
+          },
+        };
+      }
+
+      if (bloco.jogo === 'frase') {
+        if (!bloco.dados.encaixes.some((e) => `${bloco.id}-${e.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            encaixes: bloco.dados.encaixes.map((e) =>
+              `${bloco.id}-${e.id}.mp3` === chave ? { ...e, narracao: valor } : e,
             ),
           },
         };

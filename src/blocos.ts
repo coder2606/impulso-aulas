@@ -205,7 +205,14 @@ export type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-export const NOMES_DE_JOGO = ['separar', 'decidir', 'escada', 'ordenar', 'achar-erro'] as const;
+export const NOMES_DE_JOGO = [
+  'separar',
+  'decidir',
+  'escada',
+  'ordenar',
+  'achar-erro',
+  'frase',
+] as const;
 export type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 
 export type GrupoSeparar = { id: string; rotulo: string };
@@ -347,12 +354,52 @@ export type DadosAcharErro = {
 
 export type BlocoJogoOrdenar = BlocoJogoBase & { jogo: 'ordenar'; dados: DadosOrdenar };
 export type BlocoJogoAcharErro = BlocoJogoBase & { jogo: 'achar-erro'; dados: DadosAcharErro };
+
+export type OpcaoPalavra = {
+  id: string;
+  /** O pedaço que entra na frase, escrito tal e qual como vai aparecer. */
+  texto: string;
+  /** Porque é que este pedaço serve, ou não serve. Só se lê depois da lição. */
+  porque?: string;
+};
+export type EncaixeFrase = {
+  id: string;
+  /** O que este encaixe pede: «O que é», «Como comprar». */
+  rotulo: string;
+  opcoes: OpcaoPalavra[];
+  /** O `id` do pedaço que faz a frase funcionar. */
+  melhor: string;
+  /** O clipe que lê o encaixe e as suas opções. */
+  narracao?: string;
+};
+export type DadosFrase = {
+  /**
+   * Onde a frase vai parar, escrito para o jovem.
+   *
+   * Por exemplo, «A tua publicação no WhatsApp». É o que faz o jogo não ser um
+   * exercício de português: no fim há uma frase que se usa em sítio nenhum ou
+   * uma frase que se publica, e a diferença está aqui.
+   */
+  suporte: string;
+  /**
+   * Os encaixes, pela ordem por que a frase se lê.
+   *
+   * A frase é a soma dos pedaços escolhidos, por esta ordem, separados por um
+   * espaço. Não há moldes com buracos nem interpretador nenhum: quem escreve a
+   * aula escreve cada pedaço inteiro, e o que se vê no ecrã é exactamente o que
+   * ele escreveu.
+   */
+  encaixes: EncaixeFrase[];
+};
+
+export type BlocoJogoFrase = BlocoJogoBase & { jogo: 'frase'; dados: DadosFrase };
 export type BlocoJogo =
   | BlocoJogoSeparar
   | BlocoJogoDecidir
   | BlocoJogoEscada
   | BlocoJogoOrdenar
-  | BlocoJogoAcharErro;
+  | BlocoJogoAcharErro
+  | BlocoJogoFrase;
 
 export type Bloco =
   | BlocoVideo

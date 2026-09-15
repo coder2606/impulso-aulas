@@ -534,6 +534,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (b.jogo === 'escada') validarEscada(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'ordenar') validarOrdenar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'achar-erro') validarAcharErro(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === 'frase') validarFrase(dados, `${c}.dados`, chaves, erros);
     return;
   }
 
@@ -674,6 +675,80 @@ function validarDecidir(
 
     if (!textoNaoVazio(r.melhor) || !ids.has(r.melhor)) {
       erros.push({ caminho: `${cr}.melhor`, mensagem: 'melhor tem de ser o id de uma das opções' });
+    }
+  });
+}
+
+/**
+ * O jogo de montar a frase: encaixes com pedacos a escolha, um deles melhor.
+ *
+ * Um pedaco repetido dentro do mesmo encaixe seria uma escolha impossivel de
+ * explicar: o jovem escolhe uma das duas frases iguais, o jogo recusa, e o que
+ * ele le na recusa e exactamente o que escolheu. Dois encaixes nao fazem frase
+ * nenhuma, e cinco ja e mais texto do que cabe num telemovel com as opcoes
+ * todas a vista.
+ */
+function validarFrase(
+  d: Record<string, unknown>,
+  c: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
+  if (!textoNaoVazio(d.suporte)) {
+    erros.push({
+      caminho: `${c}.suporte`,
+      mensagem: 'suporte em falta, por exemplo a tua publicacao no WhatsApp',
+    });
+  }
+
+  const encaixes = Array.isArray(d.encaixes) ? d.encaixes : [];
+  if (encaixes.length < 3 || encaixes.length > 5) {
+    erros.push({ caminho: `${c}.encaixes`, mensagem: 'entre tres e cinco encaixes' });
+  }
+
+  const idsDeEncaixe = new Set<string>();
+  encaixes.forEach((e, i) => {
+    const ce = `${c}.encaixes[${i}]`;
+    if (!eObjecto(e) || !textoNaoVazio(e.id) || !textoNaoVazio(e.rotulo)) {
+      erros.push({ caminho: ce, mensagem: 'o encaixe precisa de id e rotulo' });
+      return;
+    }
+    if (idsDeEncaixe.has(e.id)) {
+      erros.push({ caminho: `${ce}.id`, mensagem: `id repetido: ${e.id}` });
+    }
+    idsDeEncaixe.add(e.id);
+
+    validarNarracao(e.narracao, `${ce}.narracao`, chaves, erros);
+
+    const opcoes = Array.isArray(e.opcoes) ? e.opcoes : [];
+    if (opcoes.length < 2 || opcoes.length > 4) {
+      erros.push({ caminho: `${ce}.opcoes`, mensagem: 'entre dois e quatro pedacos' });
+    }
+
+    const ids = new Set<string>();
+    const textos = new Set<string>();
+    opcoes.forEach((o, j) => {
+      const co = `${ce}.opcoes[${j}]`;
+      if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.texto)) {
+        erros.push({ caminho: co, mensagem: 'o pedaco precisa de id e texto' });
+        return;
+      }
+      if (ids.has(o.id)) erros.push({ caminho: `${co}.id`, mensagem: `id repetido: ${o.id}` });
+      ids.add(o.id);
+
+      const texto = o.texto.trim().toLowerCase();
+      if (textos.has(texto)) {
+        erros.push({ caminho: `${co}.texto`, mensagem: 'dois pedacos iguais no mesmo encaixe' });
+      }
+      textos.add(texto);
+
+      if (o.porque !== undefined && !textoNaoVazio(o.porque)) {
+        erros.push({ caminho: `${co}.porque`, mensagem: 'se o porque existir, nao pode ser vazio' });
+      }
+    });
+
+    if (!textoNaoVazio(e.melhor) || !ids.has(e.melhor)) {
+      erros.push({ caminho: `${ce}.melhor`, mensagem: 'melhor tem de ser o id de um dos pedacos' });
     }
   });
 }

@@ -31,10 +31,12 @@ __export(index_exports, {
   corrigirAcharErro: () => corrigirAcharErro,
   corrigirDecidir: () => corrigirDecidir,
   corrigirEscada: () => corrigirEscada,
+  corrigirFrase: () => corrigirFrase,
   corrigirOrdenar: () => corrigirOrdenar,
   corrigirSeparar: () => corrigirSeparar,
   definirNarracao: () => definirNarracao,
   errosDaCena: () => errosDaCena,
+  fraseMontada: () => fraseMontada,
   idDaLinhaDaTabela: () => idDaLinhaDaTabela,
   mediaPorChave: () => mediaPorChave,
   passoCerto: () => passoCerto,
@@ -56,7 +58,14 @@ var NOMES_DE_FERRAMENTA = [
   "plano-pdf",
   "vitrine"
 ];
-var NOMES_DE_JOGO = ["separar", "decidir", "escada", "ordenar", "achar-erro"];
+var NOMES_DE_JOGO = [
+  "separar",
+  "decidir",
+  "escada",
+  "ordenar",
+  "achar-erro",
+  "frase"
+];
 
 // src/validar.ts
 var TIPOS_SUPORTADOS = [
@@ -504,6 +513,7 @@ function validarBloco(b, i, chaves, erros) {
     if (b.jogo === "escada") validarEscada(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "ordenar") validarOrdenar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "achar-erro") validarAcharErro(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === "frase") validarFrase(dados, `${c}.dados`, chaves, erros);
     return;
   }
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: "medalha em falta" });
@@ -605,6 +615,57 @@ function validarDecidir(d, c, chaves, erros) {
     });
     if (!textoNaoVazio(r.melhor) || !ids.has(r.melhor)) {
       erros.push({ caminho: `${cr}.melhor`, mensagem: "melhor tem de ser o id de uma das op\xE7\xF5es" });
+    }
+  });
+}
+function validarFrase(d, c, chaves, erros) {
+  if (!textoNaoVazio(d.suporte)) {
+    erros.push({
+      caminho: `${c}.suporte`,
+      mensagem: "suporte em falta, por exemplo a tua publicacao no WhatsApp"
+    });
+  }
+  const encaixes = Array.isArray(d.encaixes) ? d.encaixes : [];
+  if (encaixes.length < 3 || encaixes.length > 5) {
+    erros.push({ caminho: `${c}.encaixes`, mensagem: "entre tres e cinco encaixes" });
+  }
+  const idsDeEncaixe = /* @__PURE__ */ new Set();
+  encaixes.forEach((e, i) => {
+    const ce = `${c}.encaixes[${i}]`;
+    if (!eObjecto(e) || !textoNaoVazio(e.id) || !textoNaoVazio(e.rotulo)) {
+      erros.push({ caminho: ce, mensagem: "o encaixe precisa de id e rotulo" });
+      return;
+    }
+    if (idsDeEncaixe.has(e.id)) {
+      erros.push({ caminho: `${ce}.id`, mensagem: `id repetido: ${e.id}` });
+    }
+    idsDeEncaixe.add(e.id);
+    validarNarracao(e.narracao, `${ce}.narracao`, chaves, erros);
+    const opcoes = Array.isArray(e.opcoes) ? e.opcoes : [];
+    if (opcoes.length < 2 || opcoes.length > 4) {
+      erros.push({ caminho: `${ce}.opcoes`, mensagem: "entre dois e quatro pedacos" });
+    }
+    const ids = /* @__PURE__ */ new Set();
+    const textos = /* @__PURE__ */ new Set();
+    opcoes.forEach((o, j) => {
+      const co = `${ce}.opcoes[${j}]`;
+      if (!eObjecto(o) || !textoNaoVazio(o.id) || !textoNaoVazio(o.texto)) {
+        erros.push({ caminho: co, mensagem: "o pedaco precisa de id e texto" });
+        return;
+      }
+      if (ids.has(o.id)) erros.push({ caminho: `${co}.id`, mensagem: `id repetido: ${o.id}` });
+      ids.add(o.id);
+      const texto = o.texto.trim().toLowerCase();
+      if (textos.has(texto)) {
+        erros.push({ caminho: `${co}.texto`, mensagem: "dois pedacos iguais no mesmo encaixe" });
+      }
+      textos.add(texto);
+      if (o.porque !== void 0 && !textoNaoVazio(o.porque)) {
+        erros.push({ caminho: `${co}.porque`, mensagem: "se o porque existir, nao pode ser vazio" });
+      }
+    });
+    if (!textoNaoVazio(e.melhor) || !ids.has(e.melhor)) {
+      erros.push({ caminho: `${ce}.melhor`, mensagem: "melhor tem de ser o id de um dos pedacos" });
     }
   });
 }
@@ -826,6 +887,18 @@ function corrigirOrdenar(dados, ordem, erros) {
     semFalhas: erros === 0 && acertos === dados.passos.length
   };
 }
+function fraseMontada(dados, escolhas) {
+  return dados.encaixes.map((e) => e.opcoes.find((o) => o.id === escolhas[e.id])?.texto).filter((t) => typeof t === "string" && t.trim().length > 0).join(" ");
+}
+function corrigirFrase(dados, escolhas, erros) {
+  const acertos = dados.encaixes.filter((e) => escolhas[e.id] === e.melhor).length;
+  return {
+    acertos,
+    total: dados.encaixes.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.encaixes.length
+  };
+}
 function errosDaCena(dados) {
   return dados.itens.filter((i) => i.errado).map((i) => i.id);
 }
@@ -938,6 +1011,19 @@ function pedacosDoBloco(bloco) {
           rotulo: `Jogo, ronda ${i + 1}`,
           texto: `${r.situacao} ${r.pergunta}`,
           narracao: r.narracao
+        }))
+      ];
+    }
+    if (bloco.jogo === "frase") {
+      return [
+        missao,
+        ...bloco.dados.encaixes.map((e, i) => ({
+          chave: `${bloco.id}-${e.id}.mp3`,
+          rotulo: `Jogo, encaixe ${i + 1}`,
+          // Os pedacos ja vem escritos com a pontuacao deles, ao contrario dos
+          // rotulos das outras mecanicas. Juntar com ponto punha dois.
+          texto: [e.rotulo, ...e.opcoes.map((o) => o.texto)].map(terminada).join(" "),
+          narracao: e.narracao
         }))
       ];
     }
@@ -1112,6 +1198,18 @@ function definirNarracao(aula, chave, valor) {
           }
         };
       }
+      if (bloco.jogo === "frase") {
+        if (!bloco.dados.encaixes.some((e) => `${bloco.id}-${e.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            encaixes: bloco.dados.encaixes.map(
+              (e) => `${bloco.id}-${e.id}.mp3` === chave ? { ...e, narracao: valor } : e
+            )
+          }
+        };
+      }
       if (bloco.jogo === "achar-erro") {
         if (!bloco.dados.itens.some((i) => `${bloco.id}-${i.id}.mp3` === chave)) return bloco;
         return {
@@ -1218,10 +1316,12 @@ function versaoDoContrato() {
   corrigirAcharErro,
   corrigirDecidir,
   corrigirEscada,
+  corrigirFrase,
   corrigirOrdenar,
   corrigirSeparar,
   definirNarracao,
   errosDaCena,
+  fraseMontada,
   idDaLinhaDaTabela,
   mediaPorChave,
   passoCerto,

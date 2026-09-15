@@ -4,7 +4,9 @@ import {
   bancaDaEscada,
   baralharPassos,
   corrigirAcharErro,
+  corrigirFrase,
   corrigirOrdenar,
+  fraseMontada,
   errosDaCena,
   passoCerto,
   corrigirDecidir,
@@ -16,6 +18,7 @@ import {
 import type {
   BlocoJogo,
   DadosAcharErro,
+  DadosFrase,
   DadosDecidir,
   DadosEscada,
   DadosOrdenar,
@@ -344,5 +347,71 @@ describe('corrigirAcharErro', () => {
 
   it('diz quais são as linhas erradas, pela ordem da cena', () => {
     expect(errosDaCena(CENA)).toEqual(['i2', 'i4']);
+  });
+});
+
+const FRASE: DadosFrase = {
+  suporte: 'A tua publicação no WhatsApp',
+  encaixes: [
+    {
+      id: 'e1',
+      rotulo: 'O que é',
+      opcoes: [
+        { id: 'a', texto: 'Tenho coisas boas à venda.' },
+        { id: 'b', texto: 'Chegaram bolos de coco feitos hoje de manhã.' },
+      ],
+      melhor: 'b',
+    },
+    {
+      id: 'e2',
+      rotulo: 'Quanto custa',
+      opcoes: [
+        { id: 'a', texto: 'Preço bom.' },
+        { id: 'b', texto: '25 meticais cada um.' },
+      ],
+      melhor: 'b',
+    },
+    {
+      id: 'e3',
+      rotulo: 'Como comprar',
+      opcoes: [
+        { id: 'a', texto: 'Manda mensagem para o 84 000 0000 até às seis.' },
+        { id: 'b', texto: 'Quem quiser que apareça.' },
+      ],
+      melhor: 'a',
+    },
+  ],
+};
+
+describe('fraseMontada', () => {
+  it('junta os pedaços escolhidos pela ordem dos encaixes', () => {
+    expect(fraseMontada(FRASE, { e1: 'b', e2: 'b', e3: 'a' })).toBe(
+      'Chegaram bolos de coco feitos hoje de manhã. 25 meticais cada um. Manda mensagem para o 84 000 0000 até às seis.',
+    );
+  });
+
+  it('a frase a meio só tem o que já foi escolhido', () => {
+    expect(fraseMontada(FRASE, { e1: 'a' })).toBe('Tenho coisas boas à venda.');
+  });
+
+  it('uma escolha que não existe não deixa buraco nenhum', () => {
+    expect(fraseMontada(FRASE, { e1: 'b', e2: 'z' })).toBe(
+      'Chegaram bolos de coco feitos hoje de manhã.',
+    );
+  });
+});
+
+describe('corrigirFrase', () => {
+  it('conta um acerto por encaixe com o pedaço que faz a frase funcionar', () => {
+    const r = corrigirFrase(FRASE, { e1: 'b', e2: 'b', e3: 'a' }, 0);
+    expect(r).toEqual({ acertos: 3, total: 3, erros: 0, semFalhas: true });
+  });
+
+  it('a frase vaga conta zero, e não meia', () => {
+    expect(corrigirFrase(FRASE, { e1: 'a', e2: 'a', e3: 'b' }, 3).acertos).toBe(0);
+  });
+
+  it('a frase certa montada com tropeções não é sem falhas', () => {
+    expect(corrigirFrase(FRASE, { e1: 'b', e2: 'b', e3: 'a' }, 1).semFalhas).toBe(false);
   });
 });

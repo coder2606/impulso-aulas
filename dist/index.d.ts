@@ -222,7 +222,7 @@ type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada", "ordenar", "achar-erro"];
+declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada", "ordenar", "achar-erro", "frase"];
 type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 type GrupoSeparar = {
     id: string;
@@ -383,7 +383,47 @@ type BlocoJogoAcharErro = BlocoJogoBase & {
     jogo: 'achar-erro';
     dados: DadosAcharErro;
 };
-type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada | BlocoJogoOrdenar | BlocoJogoAcharErro;
+type OpcaoPalavra = {
+    id: string;
+    /** O pedaço que entra na frase, escrito tal e qual como vai aparecer. */
+    texto: string;
+    /** Porque é que este pedaço serve, ou não serve. Só se lê depois da lição. */
+    porque?: string;
+};
+type EncaixeFrase = {
+    id: string;
+    /** O que este encaixe pede: «O que é», «Como comprar». */
+    rotulo: string;
+    opcoes: OpcaoPalavra[];
+    /** O `id` do pedaço que faz a frase funcionar. */
+    melhor: string;
+    /** O clipe que lê o encaixe e as suas opções. */
+    narracao?: string;
+};
+type DadosFrase = {
+    /**
+     * Onde a frase vai parar, escrito para o jovem.
+     *
+     * Por exemplo, «A tua publicação no WhatsApp». É o que faz o jogo não ser um
+     * exercício de português: no fim há uma frase que se usa em sítio nenhum ou
+     * uma frase que se publica, e a diferença está aqui.
+     */
+    suporte: string;
+    /**
+     * Os encaixes, pela ordem por que a frase se lê.
+     *
+     * A frase é a soma dos pedaços escolhidos, por esta ordem, separados por um
+     * espaço. Não há moldes com buracos nem interpretador nenhum: quem escreve a
+     * aula escreve cada pedaço inteiro, e o que se vê no ecrã é exactamente o que
+     * ele escreveu.
+     */
+    encaixes: EncaixeFrase[];
+};
+type BlocoJogoFrase = BlocoJogoBase & {
+    jogo: 'frase';
+    dados: DadosFrase;
+};
+type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada | BlocoJogoOrdenar | BlocoJogoAcharErro | BlocoJogoFrase;
 type Bloco = BlocoVideo | BlocoCarrossel | BlocoPassos | BlocoDesafio | BlocoChecklist | BlocoAudioSlides | BlocoTabela | BlocoAutoavaliacao | BlocoQuiz | BlocoFormulario | BlocoFerramenta | BlocoJogo | BlocoRecompensa;
 type ConteudoAula = {
     versao: 1;
@@ -478,6 +518,16 @@ type Ordem = string[];
 /** Este passo e mesmo o que falta nesta posicao da fila? */
 declare function passoCerto(dados: DadosOrdenar, posicao: number, passoId: string): boolean;
 declare function corrigirOrdenar(dados: DadosOrdenar, ordem: Ordem, erros: number): ResultadoJogo;
+/**
+ * A frase montada, tal como se le.
+ *
+ * Os pedacos por escolher ficam de fora: enquanto se joga, a frase cresce e e
+ * isso que se ve em cima do tabuleiro. Vive aqui e nao em cada leitor porque a
+ * frase tambem e o que se guarda e o que se le em voz alta no fim, e tres
+ * maneiras de a juntar dariam tres frases diferentes.
+ */
+declare function fraseMontada(dados: DadosFrase, escolhas: Escolhas): string;
+declare function corrigirFrase(dados: DadosFrase, escolhas: Escolhas, erros: number): ResultadoJogo;
 /** As linhas da cena que estao mesmo mal. */
 declare function errosDaCena(dados: DadosAcharErro): string[];
 /**
@@ -578,4 +628,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoAcharErro, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoOrdenar, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosAcharErro, type DadosDecidir, type DadosEscada, type DadosOrdenar, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemCena, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Ordem, type Passo, type PassoOrdenar, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, baralharPassos, blocosObrigatorios, cartaoCerto, corrigirAcharErro, corrigirDecidir, corrigirEscada, corrigirOrdenar, corrigirSeparar, definirNarracao, errosDaCena, idDaLinhaDaTabela, mediaPorChave, passoCerto, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoAcharErro, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoFrase, type BlocoJogoOrdenar, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosAcharErro, type DadosDecidir, type DadosEscada, type DadosFrase, type DadosOrdenar, type DadosSeparar, type DegrauEscada, type EncaixeFrase, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemCena, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoPalavra, type OpcaoQuiz, type Ordem, type Passo, type PassoOrdenar, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, baralharPassos, blocosObrigatorios, cartaoCerto, corrigirAcharErro, corrigirDecidir, corrigirEscada, corrigirFrase, corrigirOrdenar, corrigirSeparar, definirNarracao, errosDaCena, fraseMontada, idDaLinhaDaTabela, mediaPorChave, passoCerto, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
