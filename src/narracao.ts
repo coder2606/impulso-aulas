@@ -8,6 +8,7 @@
  * primeira vez que alguem mexesse num dos lados.
  */
 import type { Bloco, ConteudoAula } from './blocos';
+import { aberturaDoJogo } from './jogos';
 
 export type PedacoNarravel = {
   /** O nome que o ficheiro deve ter, derivado de onde o pedaco vive. */
@@ -103,7 +104,9 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
     const missao = {
       chave: `${bloco.id}.mp3`,
       rotulo: `Jogo, ${bloco.titulo}`,
-      texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+      // A abertura sai inteira do contrato: e um jogo, chama-se assim, e disto,
+      // joga-se assim, e isto acontece quando se erra. Ver aberturaDoJogo.
+      texto: aberturaDoJogo(bloco),
       narracao: bloco.narracao,
     };
 

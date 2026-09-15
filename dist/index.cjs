@@ -22,6 +22,8 @@ var index_exports = {};
 __export(index_exports, {
   NOMES_DE_FERRAMENTA: () => NOMES_DE_FERRAMENTA,
   NOMES_DE_JOGO: () => NOMES_DE_JOGO,
+  REGRA_DO_MOMENTO: () => REGRA_DO_MOMENTO,
+  aberturaDoJogo: () => aberturaDoJogo,
   bancaDaEscada: () => bancaDaEscada,
   blocosObrigatorios: () => blocosObrigatorios,
   cartaoCerto: () => cartaoCerto,
@@ -469,6 +471,17 @@ function validarBloco(b, i, chaves, erros) {
     if (b.instrucao !== void 0 && !textoNaoVazio(b.instrucao)) {
       erros.push({ caminho: `${c}.instrucao`, mensagem: "se a instru\xE7\xE3o existir, n\xE3o pode ser vazia" });
     }
+    if (b.regras !== void 0) {
+      if (!Array.isArray(b.regras) || b.regras.length === 0 || b.regras.length > 5) {
+        erros.push({ caminho: `${c}.regras`, mensagem: "regras tem de ser uma lista de 1 a 5 linhas" });
+      } else {
+        b.regras.forEach((r, i2) => {
+          if (!textoNaoVazio(r)) {
+            erros.push({ caminho: `${c}.regras[${i2}]`, mensagem: "regra vazia" });
+          }
+        });
+      }
+    }
     validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
     if (b.obrigatorio_para_concluir !== void 0) {
       erros.push({
@@ -683,6 +696,22 @@ function mediaPorChave(aula) {
 }
 
 // src/jogos.ts
+var REGRA_DO_MOMENTO = {
+  antes: "Neste n\xE3o te digo se acertaste. Quero ver o que j\xE1 sabes. No fim da aula jogamos outra vez, e a\xED digo.",
+  depois: "Aqui digo-te logo o que est\xE1 certo e o que n\xE3o est\xE1."
+};
+function terminada(linha) {
+  return /[.!?]$/.test(linha.trim()) ? linha.trim() : `${linha.trim()}.`;
+}
+function aberturaDoJogo(bloco) {
+  const partes = [`Agora vamos a um jogo. Chama-se ${terminada(bloco.titulo)}`];
+  if (bloco.instrucao) partes.push(terminada(bloco.instrucao));
+  if (bloco.regras && bloco.regras.length > 0) {
+    partes.push(`Como se joga. ${bloco.regras.map(terminada).join(" ")}`);
+  }
+  partes.push(REGRA_DO_MOMENTO[bloco.momento]);
+  return partes.join(" ");
+}
 function cartaoCerto(dados, cartaoId, grupoId) {
   const cartao = dados.cartoes.find((c) => c.id === cartaoId);
   return cartao !== void 0 && cartao.grupo === grupoId;
@@ -779,7 +808,9 @@ function pedacosDoBloco(bloco) {
     const missao = {
       chave: `${bloco.id}.mp3`,
       rotulo: `Jogo, ${bloco.titulo}`,
-      texto: bloco.instrucao ? `${bloco.titulo}. ${bloco.instrucao}` : `${bloco.titulo}.`,
+      // A abertura sai inteira do contrato: e um jogo, chama-se assim, e disto,
+      // joga-se assim, e isto acontece quando se erra. Ver aberturaDoJogo.
+      texto: aberturaDoJogo(bloco),
       narracao: bloco.narracao
     };
     if (bloco.jogo === "separar") {
@@ -1026,6 +1057,8 @@ function versaoDoContrato() {
 0 && (module.exports = {
   NOMES_DE_FERRAMENTA,
   NOMES_DE_JOGO,
+  REGRA_DO_MOMENTO,
+  aberturaDoJogo,
   bancaDaEscada,
   blocosObrigatorios,
   cartaoCerto,

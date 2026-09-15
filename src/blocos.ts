@@ -279,6 +279,18 @@ type BlocoJogoBase = {
   momento: 'antes' | 'depois';
   titulo: string;
   instrucao?: string;
+  /**
+   * Como se joga, em linhas curtas.
+   *
+   * Sem isto o jogo abria com o nome e a historia e mandava jogar, e quem
+   * nunca jogou aquilo ficava a adivinhar a mecanica com o tabuleiro ja a
+   * frente. As regras sao conteudo e nao ecra: mudam de jogo para jogo, e
+   * quem escreve a aula tem de as poder escrever sem tocar em codigo.
+   *
+   * Uma linha por regra, pela ordem por que se joga. Entram no aviso de
+   * abertura e sao lidas em voz alta a seguir a historia.
+   */
+  regras?: string[];
   narracao?: string;
   /** Ganha-se por terminar, mesmo errando tudo. */
   xp: number;

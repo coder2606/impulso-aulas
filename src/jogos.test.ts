@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { bancaDaEscada, corrigirDecidir, corrigirEscada, corrigirSeparar, xpDoJogo } from './jogos';
+import {
+  aberturaDoJogo,
+  bancaDaEscada,
+  corrigirDecidir,
+  corrigirEscada,
+  corrigirSeparar,
+  REGRA_DO_MOMENTO,
+  xpDoJogo,
+} from './jogos';
 import type { BlocoJogo, DadosDecidir, DadosEscada, DadosSeparar } from './blocos';
 
 const SEPARAR: DadosSeparar = {
@@ -177,5 +185,57 @@ describe('xpDoJogo', () => {
 
   it('junta o extra a quem acaba sem falhas', () => {
     expect(xpDoJogo(bloco, { acertos: 4, total: 4, erros: 0, semFalhas: true })).toBe(40);
+  });
+});
+
+describe('aberturaDoJogo', () => {
+  const base = {
+    id: 'jogo-envelopes',
+    tipo: 'jogo',
+    jogo: 'separar',
+    titulo: 'Ajuda a Nhelete',
+    xp: 10,
+    xp_extra: 5,
+    dados: SEPARAR,
+  } as const;
+
+  it('apresenta o jogo pelo nome antes de mais nada', () => {
+    const texto = aberturaDoJogo({ ...base, momento: 'depois' } as BlocoJogo);
+    expect(texto.startsWith('Agora vamos a um jogo. Chama-se Ajuda a Nhelete.')).toBe(true);
+  });
+
+  it('lê a história, depois as regras, e no fim o que acontece ao errar', () => {
+    const texto = aberturaDoJogo({
+      ...base,
+      momento: 'depois',
+      instrucao: 'A Nhelete vende comida junto à paragem',
+      regras: ['Arrasta a carta para o envelope', 'Podes tentar as vezes que quiseres'],
+    } as BlocoJogo);
+
+    expect(texto).toBe(
+      'Agora vamos a um jogo. Chama-se Ajuda a Nhelete. ' +
+        'A Nhelete vende comida junto à paragem. ' +
+        'Como se joga. Arrasta a carta para o envelope. Podes tentar as vezes que quiseres. ' +
+        REGRA_DO_MOMENTO.depois,
+    );
+  });
+
+  it('avisa que o jogo de antes não corrige, que é a regra que mais confunde', () => {
+    const texto = aberturaDoJogo({ ...base, momento: 'antes' } as BlocoJogo);
+    expect(texto).toContain('No fim da aula jogamos outra vez');
+  });
+
+  it('não deixa regras sem ponto colarem-se umas às outras', () => {
+    const texto = aberturaDoJogo({
+      ...base,
+      momento: 'depois',
+      regras: ['Uma', 'Duas'],
+    } as BlocoJogo);
+    expect(texto).toContain('Como se joga. Uma. Duas.');
+  });
+
+  it('dispensa história e regras sem ficar sem apresentação', () => {
+    const texto = aberturaDoJogo({ ...base, momento: 'depois' } as BlocoJogo);
+    expect(texto).toBe(`Agora vamos a um jogo. Chama-se Ajuda a Nhelete. ${REGRA_DO_MOMENTO.depois}`);
   });
 });

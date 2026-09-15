@@ -497,6 +497,21 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
       erros.push({ caminho: `${c}.instrucao`, mensagem: 'se a instrução existir, não pode ser vazia' });
     }
 
+    // As regras são lidas em voz alta na abertura, uma a seguir à outra. Seis
+    // linhas já são meio minuto de instruções antes de se jogar o que quer que
+    // seja, e a essa altura ninguém se lembra da primeira.
+    if (b.regras !== undefined) {
+      if (!Array.isArray(b.regras) || b.regras.length === 0 || b.regras.length > 5) {
+        erros.push({ caminho: `${c}.regras`, mensagem: 'regras tem de ser uma lista de 1 a 5 linhas' });
+      } else {
+        b.regras.forEach((r, i) => {
+          if (!textoNaoVazio(r)) {
+            erros.push({ caminho: `${c}.regras[${i}]`, mensagem: 'regra vazia' });
+          }
+        });
+      }
+    }
+
     validarNarracao(b.narracao, `${c}.narracao`, chaves, erros);
 
     // A mesma regra da ferramenta, e pela mesma razão: a base de dados só sabe

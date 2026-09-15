@@ -303,6 +303,18 @@ type BlocoJogoBase = {
     momento: 'antes' | 'depois';
     titulo: string;
     instrucao?: string;
+    /**
+     * Como se joga, em linhas curtas.
+     *
+     * Sem isto o jogo abria com o nome e a historia e mandava jogar, e quem
+     * nunca jogou aquilo ficava a adivinhar a mecanica com o tabuleiro ja a
+     * frente. As regras sao conteudo e nao ecra: mudam de jogo para jogo, e
+     * quem escreve a aula tem de as poder escrever sem tocar em codigo.
+     *
+     * Uma linha por regra, pela ordem por que se joga. Entram no aviso de
+     * abertura e sao lidas em voz alta a seguir a historia.
+     */
+    regras?: string[];
     narracao?: string;
     /** Ganha-se por terminar, mesmo errando tudo. */
     xp: number;
@@ -361,6 +373,32 @@ declare function blocosObrigatorios(aula: ConteudoAula): string[];
 /** Indexa a media da aula pela chave, para os blocos resolverem os seus ficheiros. */
 declare function mediaPorChave(aula: ConteudoAula): Map<string, MediaRef>;
 
+/**
+ * A regra que mais confunde, dita pelo proprio jogo.
+ *
+ * O jogo de antes da licao nao corrige nada, de proposito: os dois jogos da
+ * mesma aula usam os mesmos cartoes, e se o primeiro revelasse as respostas o
+ * segundo passava a medir memoria de cinco minutos em vez de compreensao. So
+ * que um jogo que aceita tudo em silencio nao se le como «este e as cegas»,
+ * le-se como avariado -- foi o que aconteceu ao cliente no primeiro teste. A
+ * regra deixa de estar escondida no codigo e passa a ser dita ao jogador, na
+ * abertura e no fim.
+ *
+ * Fica no contrato e nao em cada leitor porque e a mesma frase na aplicacao, na
+ * web e no clipe gravado: com tres copias, bastava mexer numa para o jovem
+ * ouvir uma promessa e ler outra.
+ */
+declare const REGRA_DO_MOMENTO: Record<'antes' | 'depois', string>;
+/**
+ * O que se diz quando um jogo abre, por esta ordem: que e um jogo, como se
+ * chama, de que trata, como se joga, e o que acontece quando se erra.
+ *
+ * Antes disto a abertura era o titulo mais a historia, e mais nada. Quem nunca
+ * tinha jogado aquilo chegava ao tabuleiro sem saber a mecanica e descobria-a a
+ * tentar. Serve o ecra e o clipe gravado ao mesmo tempo, para nao haver duas
+ * versoes da mesma apresentacao.
+ */
+declare function aberturaDoJogo(bloco: BlocoJogo): string;
 /**
  * A conta de um jogo, feita uma vez e usada nos dois leitores.
  *
@@ -461,4 +499,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosEscada, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, bancaDaEscada, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirEscada, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosEscada, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirEscada, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };

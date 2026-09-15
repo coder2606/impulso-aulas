@@ -1,4 +1,4 @@
-import { pedacosNarraveis, definirNarracao, idDaLinhaDaTabela } from './index';
+import { pedacosNarraveis, definirNarracao, idDaLinhaDaTabela, REGRA_DO_MOMENTO } from './index';
 import type { ConteudoAula } from './index';
 
 const aula = (blocos: unknown[]): ConteudoAula =>
@@ -374,7 +374,12 @@ describe('jogo', () => {
       'b9-c3.mp3',
       'b9-c4.mp3',
     ]);
-    expect(p[0].texto).toBe('Ajuda a Nhelete. Põe cada gasto no envelope certo.');
+    // A abertura apresenta o jogo pelo nome e acaba a dizer o que acontece ao
+    // errar. Ver aberturaDoJogo, em jogos.ts.
+    expect(p[0].texto).toBe(
+      'Agora vamos a um jogo. Chama-se Ajuda a Nhelete. Põe cada gasto no envelope certo. ' +
+        REGRA_DO_MOMENTO.depois,
+    );
     expect(p[1].texto).toBe('Farinha para vender');
   });
 

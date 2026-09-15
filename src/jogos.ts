@@ -1,6 +1,51 @@
 import type { BlocoJogo, DadosDecidir, DadosEscada, DadosSeparar } from './blocos';
 
 /**
+ * A regra que mais confunde, dita pelo proprio jogo.
+ *
+ * O jogo de antes da licao nao corrige nada, de proposito: os dois jogos da
+ * mesma aula usam os mesmos cartoes, e se o primeiro revelasse as respostas o
+ * segundo passava a medir memoria de cinco minutos em vez de compreensao. So
+ * que um jogo que aceita tudo em silencio nao se le como «este e as cegas»,
+ * le-se como avariado -- foi o que aconteceu ao cliente no primeiro teste. A
+ * regra deixa de estar escondida no codigo e passa a ser dita ao jogador, na
+ * abertura e no fim.
+ *
+ * Fica no contrato e nao em cada leitor porque e a mesma frase na aplicacao, na
+ * web e no clipe gravado: com tres copias, bastava mexer numa para o jovem
+ * ouvir uma promessa e ler outra.
+ */
+export const REGRA_DO_MOMENTO: Record<'antes' | 'depois', string> = {
+  antes:
+    'Neste não te digo se acertaste. Quero ver o que já sabes. No fim da aula jogamos outra vez, e aí digo.',
+  depois: 'Aqui digo-te logo o que está certo e o que não está.',
+};
+
+/** Uma regra sem ponto final sai colada à seguinte quando é lida em voz alta. */
+function terminada(linha: string): string {
+  return /[.!?]$/.test(linha.trim()) ? linha.trim() : `${linha.trim()}.`;
+}
+
+/**
+ * O que se diz quando um jogo abre, por esta ordem: que e um jogo, como se
+ * chama, de que trata, como se joga, e o que acontece quando se erra.
+ *
+ * Antes disto a abertura era o titulo mais a historia, e mais nada. Quem nunca
+ * tinha jogado aquilo chegava ao tabuleiro sem saber a mecanica e descobria-a a
+ * tentar. Serve o ecra e o clipe gravado ao mesmo tempo, para nao haver duas
+ * versoes da mesma apresentacao.
+ */
+export function aberturaDoJogo(bloco: BlocoJogo): string {
+  const partes = [`Agora vamos a um jogo. Chama-se ${terminada(bloco.titulo)}`];
+  if (bloco.instrucao) partes.push(terminada(bloco.instrucao));
+  if (bloco.regras && bloco.regras.length > 0) {
+    partes.push(`Como se joga. ${bloco.regras.map(terminada).join(' ')}`);
+  }
+  partes.push(REGRA_DO_MOMENTO[bloco.momento]);
+  return partes.join(' ');
+}
+
+/**
  * A conta de um jogo, feita uma vez e usada nos dois leitores.
  *
  * Vive no contrato, e nao em cada aplicacao, pela mesma razao que o validador:

@@ -904,6 +904,26 @@ describe('bloco jogo', () => {
     if (!r.ok) expect(r.erros[0].caminho).toContain('.jogo');
   });
 
+  it('aceita regras, que sao como se joga dito ao jogador', () => {
+    expect(comBloco({ ...separar(), regras: ['Arrasta a carta', 'Tenta as vezes que quiseres'] }).ok).toBe(
+      true,
+    );
+  });
+
+  it('recusa uma lista de regras vazia, que e o mesmo que nao ter regras', () => {
+    expect(comBloco({ ...separar(), regras: [] }).ok).toBe(false);
+  });
+
+  it('recusa mais regras do que alguem consegue ouvir de seguida', () => {
+    expect(comBloco({ ...separar(), regras: ['a', 'b', 'c', 'd', 'e', 'f'] }).ok).toBe(false);
+  });
+
+  it('recusa uma regra vazia no meio das outras', () => {
+    const r = comBloco({ ...separar(), regras: ['Arrasta a carta', '  '] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('.regras[1]');
+  });
+
   it('recusa um momento que nao e antes nem depois', () => {
     expect(comBloco({ ...separar(), momento: 'meio' }).ok).toBe(false);
   });
