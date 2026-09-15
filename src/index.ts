@@ -38,9 +38,12 @@ export type {
   OpcaoEscada,
   DegrauEscada,
   DadosEscada,
+  PassoOrdenar,
+  DadosOrdenar,
   BlocoJogoSeparar,
   BlocoJogoDecidir,
   BlocoJogoEscada,
+  BlocoJogoOrdenar,
   BlocoJogo,
   BlocoRecompensa,
   Bloco,
@@ -53,12 +56,15 @@ export { NOMES_DE_FERRAMENTA, NOMES_DE_JOGO } from "./blocos";
 
 export { validarAula, blocosObrigatorios, mediaPorChave } from "./validar";
 
-export type { ResultadoJogo, Colocacoes, Escolhas } from "./jogos";
+export type { ResultadoJogo, Colocacoes, Escolhas, Ordem } from "./jogos";
 export {
   cartaoCerto,
   corrigirSeparar,
   corrigirDecidir,
   corrigirEscada,
+  passoCerto,
+  corrigirOrdenar,
+  baralharPassos,
   bancaDaEscada,
   xpDoJogo,
   aberturaDoJogo,

@@ -532,6 +532,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (b.jogo === 'separar') validarSeparar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'decidir') validarDecidir(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'escada') validarEscada(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === 'ordenar') validarOrdenar(dados, `${c}.dados`, chaves, erros);
     return;
   }
 
@@ -673,6 +674,57 @@ function validarDecidir(
     if (!textoNaoVazio(r.melhor) || !ids.has(r.melhor)) {
       erros.push({ caminho: `${cr}.melhor`, mensagem: 'melhor tem de ser o id de uma das opções' });
     }
+  });
+}
+
+/**
+ * O jogo de ordenar: os passos escritos pela ordem certa, e nada mais.
+ *
+ * Dois passos com o mesmo texto seriam o unico erro impossivel de corrigir no
+ * ecra: o jovem poe um deles no sitio, o jogo recusa, e a carta que ele tem na
+ * mao le-se exactamente como a que estava certa. Apanha-se aqui, que e onde
+ * quem escreve a aula ainda o pode arranjar.
+ *
+ * Dois passos nao chegam para uma ordem: ou esta certa a primeira ou e a
+ * outra, e isso e uma moeda ao ar. Sete ja nao cabem num telemovel sem a fila
+ * ficar mais alta do que o ecra.
+ */
+function validarOrdenar(
+  d: Record<string, unknown>,
+  c: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
+  const passos = Array.isArray(d.passos) ? d.passos : [];
+  if (passos.length < 3 || passos.length > 6) {
+    erros.push({ caminho: `${c}.passos`, mensagem: 'entre tres e seis passos' });
+  }
+
+  if (d.fio !== undefined && !textoNaoVazio(d.fio)) {
+    erros.push({ caminho: `${c}.fio`, mensagem: 'se o fio existir, nao pode ser vazio' });
+  }
+
+  const ids = new Set<string>();
+  const textos = new Set<string>();
+  passos.forEach((p, i) => {
+    const cp = `${c}.passos[${i}]`;
+    if (!eObjecto(p) || !textoNaoVazio(p.id) || !textoNaoVazio(p.texto)) {
+      erros.push({ caminho: cp, mensagem: 'passo precisa de id e texto' });
+      return;
+    }
+    if (ids.has(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: `id repetido: ${p.id}` });
+    ids.add(p.id);
+
+    const texto = p.texto.trim().toLowerCase();
+    if (textos.has(texto)) {
+      erros.push({ caminho: `${cp}.texto`, mensagem: 'dois passos com o mesmo texto' });
+    }
+    textos.add(texto);
+
+    if (p.porque !== undefined && !textoNaoVazio(p.porque)) {
+      erros.push({ caminho: `${cp}.porque`, mensagem: 'se o porque existir, nao pode ser vazio' });
+    }
+    validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
   });
 }
 

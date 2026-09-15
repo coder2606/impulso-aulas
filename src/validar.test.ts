@@ -1002,4 +1002,78 @@ describe('bloco jogo', () => {
     b.dados.degraus[0].opcoes[0].explicacao = '';
     expect(comBloco(b).ok).toBe(false);
   });
+
+  const ordenar = () => ({
+    id: 'j4',
+    tipo: 'jogo',
+    jogo: 'ordenar',
+    momento: 'depois',
+    titulo: 'A venda da Sauda',
+    xp: 20,
+    xp_extra: 10,
+    dados: {
+      fio: 'Do bom dia ao dinheiro na mao',
+      passos: [
+        { id: 'p1', texto: 'Cumprimenta o cliente', porque: 'O silencio faz o cliente sair.' },
+        { id: 'p2', texto: 'Pergunta para que e que ele precisa' },
+        { id: 'p3', texto: 'Mostra um produto de cada vez' },
+        { id: 'p4', texto: 'Fecha com uma pergunta' },
+      ],
+    },
+  });
+
+  it('aceita uma ordem bem formada', () => {
+    expect(comBloco(ordenar()).ok).toBe(true);
+  });
+
+  it('recusa uma ordem com dois passos', () => {
+    const b = ordenar();
+    b.dados.passos = b.dados.passos.slice(0, 2);
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('passos');
+  });
+
+  it('recusa uma ordem com sete passos', () => {
+    const b = ordenar();
+    b.dados.passos = [
+      ...b.dados.passos,
+      { id: 'p5', texto: 'Embrulha' },
+      { id: 'p6', texto: 'Recebe' },
+      { id: 'p7', texto: 'Agradece' },
+    ];
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa dois passos com o mesmo id', () => {
+    const b = ordenar();
+    b.dados.passos[1].id = 'p1';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa dois passos com o mesmo texto, que no ecra seriam indistinguiveis', () => {
+    const b = ordenar();
+    b.dados.passos[2].texto = ' Cumprimenta o cliente ';
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].caminho).toContain('texto');
+  });
+
+  it('recusa um passo sem texto', () => {
+    const b = ordenar();
+    b.dados.passos[0].texto = '';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa um porque vazio', () => {
+    const b = ordenar();
+    b.dados.passos[0].porque = '';
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa um passo cuja narracao nao tem media', () => {
+    const b = ordenar();
+    (b.dados.passos[0] as Record<string, unknown>).narracao = 'nao-existe.mp3';
+    expect(comBloco(b).ok).toBe(false);
+  });
 });

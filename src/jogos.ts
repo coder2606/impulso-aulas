@@ -1,4 +1,11 @@
-import type { BlocoJogo, DadosDecidir, DadosEscada, DadosSeparar } from './blocos';
+import type {
+  BlocoJogo,
+  DadosDecidir,
+  DadosEscada,
+  DadosOrdenar,
+  DadosSeparar,
+  PassoOrdenar,
+} from './blocos';
 
 /**
  * A regra que mais confunde, dita pelo proprio jogo.
@@ -113,6 +120,56 @@ export function corrigirEscada(
     erros,
     semFalhas: erros === 0 && acertos === dados.degraus.length,
   };
+}
+
+/** A fila que o jovem montou: os ids dos passos, do primeiro ao ultimo. */
+export type Ordem = string[];
+
+/** Este passo e mesmo o que falta nesta posicao da fila? */
+export function passoCerto(dados: DadosOrdenar, posicao: number, passoId: string): boolean {
+  return dados.passos[posicao]?.id === passoId;
+}
+
+export function corrigirOrdenar(
+  dados: DadosOrdenar,
+  ordem: Ordem,
+  erros: number,
+): ResultadoJogo {
+  const acertos = dados.passos.filter((p, i) => ordem[i] === p.id).length;
+  return {
+    acertos,
+    total: dados.passos.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.passos.length,
+  };
+}
+
+/**
+ * As cartas por colocar, fora da ordem.
+ *
+ * Baralhar vive aqui e nao em cada leitor por uma razao pratica: o jogo tem de
+ * comecar sempre errado. Um baralho que por sorte sai na ordem certa da a
+ * vitoria de graca e faz o jogo parecer avariado, e com tres passos isso
+ * acontece uma vez em cada seis. Depois de baralhar, se calhou a ordem
+ * escrita, roda-se uma posicao: continua baralhado e deixa de estar resolvido.
+ *
+ * A fonte de sorte entra de fora para os testes poderem fixa-la. Em producao
+ * nao se passa nada e usa-se o `Math.random`.
+ */
+export function baralharPassos(
+  dados: DadosOrdenar,
+  sorte: () => number = Math.random,
+): PassoOrdenar[] {
+  const fila = [...dados.passos];
+  for (let i = fila.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(sorte() * (i + 1));
+    [fila[i], fila[j]] = [fila[j], fila[i]];
+  }
+
+  const naOrdem = fila.every((p, i) => p.id === dados.passos[i]?.id);
+  if (naOrdem && fila.length > 1) fila.push(fila.shift() as PassoOrdenar);
+
+  return fila;
 }
 
 /**

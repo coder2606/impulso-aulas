@@ -205,7 +205,7 @@ export type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-export const NOMES_DE_JOGO = ['separar', 'decidir', 'escada'] as const;
+export const NOMES_DE_JOGO = ['separar', 'decidir', 'escada', 'ordenar'] as const;
 export type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 
 export type GrupoSeparar = { id: string; rotulo: string };
@@ -268,6 +268,28 @@ export type DadosEscada = {
   ajuda?: boolean;
 };
 
+export type PassoOrdenar = {
+  id: string;
+  texto: string;
+  /** Porque é que este passo vem neste lugar. Só se lê depois da lição. */
+  porque?: string;
+  /** O clipe que lê este passo, quando se toca na carta. */
+  narracao?: string;
+};
+export type DadosOrdenar = {
+  /**
+   * Os passos pela ordem certa, que é a ordem por que estão escritos aqui.
+   *
+   * Não há campo de posição, de propósito: dois sítios a dizer a mesma coisa
+   * acabam a discordar, e quem escreve a aula escreve uma receita de cima para
+   * baixo, não uma lista com números ao lado. Baralhar é trabalho do leitor,
+   * e é o contrato que o faz — ver `baralharPassos`.
+   */
+  passos: PassoOrdenar[];
+  /** O que a fila representa de ponta a ponta. Por exemplo, «Do bom dia ao dinheiro na mão». */
+  fio?: string;
+};
+
 type BlocoJogoBase = {
   id: string;
   tipo: 'jogo';
@@ -301,7 +323,12 @@ type BlocoJogoBase = {
 export type BlocoJogoSeparar = BlocoJogoBase & { jogo: 'separar'; dados: DadosSeparar };
 export type BlocoJogoDecidir = BlocoJogoBase & { jogo: 'decidir'; dados: DadosDecidir };
 export type BlocoJogoEscada = BlocoJogoBase & { jogo: 'escada'; dados: DadosEscada };
-export type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada;
+export type BlocoJogoOrdenar = BlocoJogoBase & { jogo: 'ordenar'; dados: DadosOrdenar };
+export type BlocoJogo =
+  | BlocoJogoSeparar
+  | BlocoJogoDecidir
+  | BlocoJogoEscada
+  | BlocoJogoOrdenar;
 
 export type Bloco =
   | BlocoVideo

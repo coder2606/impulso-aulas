@@ -222,7 +222,7 @@ type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada"];
+declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada", "ordenar"];
 type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 type GrupoSeparar = {
     id: string;
@@ -292,6 +292,27 @@ type DadosEscada = {
     /** Dá direito a cortar duas respostas erradas, uma vez em todo o jogo. */
     ajuda?: boolean;
 };
+type PassoOrdenar = {
+    id: string;
+    texto: string;
+    /** Porque é que este passo vem neste lugar. Só se lê depois da lição. */
+    porque?: string;
+    /** O clipe que lê este passo, quando se toca na carta. */
+    narracao?: string;
+};
+type DadosOrdenar = {
+    /**
+     * Os passos pela ordem certa, que é a ordem por que estão escritos aqui.
+     *
+     * Não há campo de posição, de propósito: dois sítios a dizer a mesma coisa
+     * acabam a discordar, e quem escreve a aula escreve uma receita de cima para
+     * baixo, não uma lista com números ao lado. Baralhar é trabalho do leitor,
+     * e é o contrato que o faz — ver `baralharPassos`.
+     */
+    passos: PassoOrdenar[];
+    /** O que a fila representa de ponta a ponta. Por exemplo, «Do bom dia ao dinheiro na mão». */
+    fio?: string;
+};
 type BlocoJogoBase = {
     id: string;
     tipo: 'jogo';
@@ -333,7 +354,11 @@ type BlocoJogoEscada = BlocoJogoBase & {
     jogo: 'escada';
     dados: DadosEscada;
 };
-type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada;
+type BlocoJogoOrdenar = BlocoJogoBase & {
+    jogo: 'ordenar';
+    dados: DadosOrdenar;
+};
+type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada | BlocoJogoOrdenar;
 type Bloco = BlocoVideo | BlocoCarrossel | BlocoPassos | BlocoDesafio | BlocoChecklist | BlocoAudioSlides | BlocoTabela | BlocoAutoavaliacao | BlocoQuiz | BlocoFormulario | BlocoFerramenta | BlocoJogo | BlocoRecompensa;
 type ConteudoAula = {
     versao: 1;
@@ -423,6 +448,24 @@ declare function cartaoCerto(dados: DadosSeparar, cartaoId: string, grupoId: str
 declare function corrigirSeparar(dados: DadosSeparar, colocacoes: Colocacoes, erros: number): ResultadoJogo;
 declare function corrigirDecidir(dados: DadosDecidir, escolhas: Escolhas, erros: number): ResultadoJogo;
 declare function corrigirEscada(dados: DadosEscada, respostas: Escolhas, erros: number): ResultadoJogo;
+/** A fila que o jovem montou: os ids dos passos, do primeiro ao ultimo. */
+type Ordem = string[];
+/** Este passo e mesmo o que falta nesta posicao da fila? */
+declare function passoCerto(dados: DadosOrdenar, posicao: number, passoId: string): boolean;
+declare function corrigirOrdenar(dados: DadosOrdenar, ordem: Ordem, erros: number): ResultadoJogo;
+/**
+ * As cartas por colocar, fora da ordem.
+ *
+ * Baralhar vive aqui e nao em cada leitor por uma razao pratica: o jogo tem de
+ * comecar sempre errado. Um baralho que por sorte sai na ordem certa da a
+ * vitoria de graca e faz o jogo parecer avariado, e com tres passos isso
+ * acontece uma vez em cada seis. Depois de baralhar, se calhou a ordem
+ * escrita, roda-se uma posicao: continua baralhado e deixa de estar resolvido.
+ *
+ * A fonte de sorte entra de fora para os testes poderem fixa-la. Em producao
+ * nao se passa nada e usa-se o `Math.random`.
+ */
+declare function baralharPassos(dados: DadosOrdenar, sorte?: () => number): PassoOrdenar[];
 /**
  * Com quanto se fica na banca, subindo a escada com estas respostas.
  *
@@ -499,4 +542,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosEscada, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Passo, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirEscada, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoOrdenar, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosEscada, type DadosOrdenar, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Ordem, type Passo, type PassoOrdenar, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, baralharPassos, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirEscada, corrigirOrdenar, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, passoCerto, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };

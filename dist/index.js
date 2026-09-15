@@ -9,7 +9,7 @@ var NOMES_DE_FERRAMENTA = [
   "plano-pdf",
   "vitrine"
 ];
-var NOMES_DE_JOGO = ["separar", "decidir", "escada"];
+var NOMES_DE_JOGO = ["separar", "decidir", "escada", "ordenar"];
 
 // src/validar.ts
 var TIPOS_SUPORTADOS = [
@@ -455,6 +455,7 @@ function validarBloco(b, i, chaves, erros) {
     if (b.jogo === "separar") validarSeparar(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "decidir") validarDecidir(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "escada") validarEscada(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === "ordenar") validarOrdenar(dados, `${c}.dados`, chaves, erros);
     return;
   }
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: "medalha em falta" });
@@ -557,6 +558,35 @@ function validarDecidir(d, c, chaves, erros) {
     if (!textoNaoVazio(r.melhor) || !ids.has(r.melhor)) {
       erros.push({ caminho: `${cr}.melhor`, mensagem: "melhor tem de ser o id de uma das op\xE7\xF5es" });
     }
+  });
+}
+function validarOrdenar(d, c, chaves, erros) {
+  const passos = Array.isArray(d.passos) ? d.passos : [];
+  if (passos.length < 3 || passos.length > 6) {
+    erros.push({ caminho: `${c}.passos`, mensagem: "entre tres e seis passos" });
+  }
+  if (d.fio !== void 0 && !textoNaoVazio(d.fio)) {
+    erros.push({ caminho: `${c}.fio`, mensagem: "se o fio existir, nao pode ser vazio" });
+  }
+  const ids = /* @__PURE__ */ new Set();
+  const textos = /* @__PURE__ */ new Set();
+  passos.forEach((p, i) => {
+    const cp = `${c}.passos[${i}]`;
+    if (!eObjecto(p) || !textoNaoVazio(p.id) || !textoNaoVazio(p.texto)) {
+      erros.push({ caminho: cp, mensagem: "passo precisa de id e texto" });
+      return;
+    }
+    if (ids.has(p.id)) erros.push({ caminho: `${cp}.id`, mensagem: `id repetido: ${p.id}` });
+    ids.add(p.id);
+    const texto = p.texto.trim().toLowerCase();
+    if (textos.has(texto)) {
+      erros.push({ caminho: `${cp}.texto`, mensagem: "dois passos com o mesmo texto" });
+    }
+    textos.add(texto);
+    if (p.porque !== void 0 && !textoNaoVazio(p.porque)) {
+      erros.push({ caminho: `${cp}.porque`, mensagem: "se o porque existir, nao pode ser vazio" });
+    }
+    validarNarracao(p.narracao, `${cp}.narracao`, chaves, erros);
   });
 }
 function validarEscada(d, c, chaves, erros) {
@@ -701,6 +731,28 @@ function corrigirEscada(dados, respostas, erros) {
     semFalhas: erros === 0 && acertos === dados.degraus.length
   };
 }
+function passoCerto(dados, posicao, passoId) {
+  return dados.passos[posicao]?.id === passoId;
+}
+function corrigirOrdenar(dados, ordem, erros) {
+  const acertos = dados.passos.filter((p, i) => ordem[i] === p.id).length;
+  return {
+    acertos,
+    total: dados.passos.length,
+    erros,
+    semFalhas: erros === 0 && acertos === dados.passos.length
+  };
+}
+function baralharPassos(dados, sorte = Math.random) {
+  const fila = [...dados.passos];
+  for (let i = fila.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(sorte() * (i + 1));
+    [fila[i], fila[j]] = [fila[j], fila[i]];
+  }
+  const naOrdem = fila.every((p, i) => p.id === dados.passos[i]?.id);
+  if (naOrdem && fila.length > 1) fila.push(fila.shift());
+  return fila;
+}
 function bancaDaEscada(dados, respostas) {
   let banca = 0;
   let chao = 0;
@@ -790,6 +842,17 @@ function pedacosDoBloco(bloco) {
           rotulo: `Jogo, ronda ${i + 1}`,
           texto: `${r.situacao} ${r.pergunta}`,
           narracao: r.narracao
+        }))
+      ];
+    }
+    if (bloco.jogo === "ordenar") {
+      return [
+        missao,
+        ...bloco.dados.passos.map((p, i) => ({
+          chave: `${bloco.id}-${p.id}.mp3`,
+          rotulo: `Jogo, passo ${i + 1}`,
+          texto: p.texto,
+          narracao: p.narracao
         }))
       ];
     }
@@ -942,6 +1005,18 @@ function definirNarracao(aula, chave, valor) {
           }
         };
       }
+      if (bloco.jogo === "ordenar") {
+        if (!bloco.dados.passos.some((p) => `${bloco.id}-${p.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            passos: bloco.dados.passos.map(
+              (p) => `${bloco.id}-${p.id}.mp3` === chave ? { ...p, narracao: valor } : p
+            )
+          }
+        };
+      }
       if (!bloco.dados.degraus.some((g) => `${bloco.id}-${g.id}.mp3` === chave)) return bloco;
       return {
         ...bloco,
@@ -1017,14 +1092,17 @@ export {
   REGRA_DO_MOMENTO,
   aberturaDoJogo,
   bancaDaEscada,
+  baralharPassos,
   blocosObrigatorios,
   cartaoCerto,
   corrigirDecidir,
   corrigirEscada,
+  corrigirOrdenar,
   corrigirSeparar,
   definirNarracao,
   idDaLinhaDaTabela,
   mediaPorChave,
+  passoCerto,
   pedacosNarraveis,
   validarAula,
   versaoDoContrato,

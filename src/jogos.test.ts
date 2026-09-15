@@ -2,13 +2,22 @@ import { describe, expect, it } from 'vitest';
 import {
   aberturaDoJogo,
   bancaDaEscada,
+  baralharPassos,
+  corrigirOrdenar,
+  passoCerto,
   corrigirDecidir,
   corrigirEscada,
   corrigirSeparar,
   REGRA_DO_MOMENTO,
   xpDoJogo,
 } from './jogos';
-import type { BlocoJogo, DadosDecidir, DadosEscada, DadosSeparar } from './blocos';
+import type {
+  BlocoJogo,
+  DadosDecidir,
+  DadosEscada,
+  DadosOrdenar,
+  DadosSeparar,
+} from './blocos';
 
 const SEPARAR: DadosSeparar = {
   grupos: [
@@ -237,5 +246,65 @@ describe('aberturaDoJogo', () => {
   it('dispensa história e regras sem ficar sem apresentação', () => {
     const texto = aberturaDoJogo({ ...base, momento: 'depois' } as BlocoJogo);
     expect(texto).toBe(`Agora vamos a um jogo. Chama-se Ajuda a Nhelete. ${REGRA_DO_MOMENTO.depois}`);
+  });
+});
+
+const ORDENAR: DadosOrdenar = {
+  fio: 'Do bom dia ao dinheiro na mão',
+  passos: [
+    { id: 'p1', texto: 'Cumprimenta o cliente' },
+    { id: 'p2', texto: 'Pergunta para que é que ele precisa' },
+    { id: 'p3', texto: 'Mostra um produto de cada vez' },
+    { id: 'p4', texto: 'Fecha a venda com uma pergunta' },
+  ],
+};
+
+describe('corrigirOrdenar', () => {
+  it('conta cada passo que ficou no seu lugar', () => {
+    const r = corrigirOrdenar(ORDENAR, ['p1', 'p2', 'p3', 'p4'], 0);
+    expect(r).toEqual({ acertos: 4, total: 4, erros: 0, semFalhas: true });
+  });
+
+  it('dois passos trocados custam os dois lugares, e não um', () => {
+    const r = corrigirOrdenar(ORDENAR, ['p2', 'p1', 'p3', 'p4'], 0);
+    expect(r.acertos).toBe(2);
+    expect(r.semFalhas).toBe(false);
+  });
+
+  it('uma fila por acabar não inventa acertos', () => {
+    expect(corrigirOrdenar(ORDENAR, ['p1', 'p2'], 0).acertos).toBe(2);
+  });
+
+  it('a fila certa montada com tropeções pelo caminho não é sem falhas', () => {
+    expect(corrigirOrdenar(ORDENAR, ['p1', 'p2', 'p3', 'p4'], 2).semFalhas).toBe(false);
+  });
+});
+
+describe('passoCerto', () => {
+  it('conhece o passo que falta em cada posição', () => {
+    expect(passoCerto(ORDENAR, 0, 'p1')).toBe(true);
+    expect(passoCerto(ORDENAR, 0, 'p3')).toBe(false);
+  });
+
+  it('uma posição além do fim da fila não é certa a ninguém', () => {
+    expect(passoCerto(ORDENAR, 9, 'p1')).toBe(false);
+  });
+});
+
+describe('baralharPassos', () => {
+  it('devolve os mesmos passos, todos', () => {
+    const fila = baralharPassos(ORDENAR, () => 0.5);
+    expect(fila.map((p) => p.id).sort()).toEqual(['p1', 'p2', 'p3', 'p4']);
+  });
+
+  it('nunca começa com o jogo resolvido, mesmo que a sorte o resolva', () => {
+    // Com sorte nula o Fisher-Yates devolve tudo no sítio onde estava.
+    const fila = baralharPassos(ORDENAR, () => 0);
+    expect(fila.map((p) => p.id)).not.toEqual(['p1', 'p2', 'p3', 'p4']);
+  });
+
+  it('não mexe nos dados da aula', () => {
+    baralharPassos(ORDENAR, () => 0.9);
+    expect(ORDENAR.passos.map((p) => p.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
   });
 });

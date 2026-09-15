@@ -134,6 +134,22 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
       ];
     }
 
+    if (bloco.jogo === 'ordenar') {
+      // As cartas estao todas a vista ao mesmo tempo, ao contrario dos outros
+      // jogos. Cada uma tem a sua voz, que toca quando se lhe toca: quem segue
+      // a aula pela voz precisa de poder ouvir carta a carta antes de escolher
+      // qual e que vem a seguir.
+      return [
+        missao,
+        ...bloco.dados.passos.map((p, i) => ({
+          chave: `${bloco.id}-${p.id}.mp3`,
+          rotulo: `Jogo, passo ${i + 1}`,
+          texto: p.texto,
+          narracao: p.narracao,
+        })),
+      ];
+    }
+
     // Na escada le-se a pergunta e as opcoes, como quem apresenta um concurso.
     // Ler so a pergunta obrigava a passar a vista pelas respostas, e entao o
     // jogo deixava de servir a quem segue a aula pela voz.
@@ -313,6 +329,19 @@ export function definirNarracao(
             ...bloco.dados,
             rondas: bloco.dados.rondas.map((r) =>
               `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r,
+            ),
+          },
+        };
+      }
+
+      if (bloco.jogo === 'ordenar') {
+        if (!bloco.dados.passos.some((p) => `${bloco.id}-${p.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            passos: bloco.dados.passos.map((p) =>
+              `${bloco.id}-${p.id}.mp3` === chave ? { ...p, narracao: valor } : p,
             ),
           },
         };

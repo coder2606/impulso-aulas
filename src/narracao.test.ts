@@ -461,3 +461,38 @@ describe('jogo da escada', () => {
     expect(b.dados.degraus[0].narracao).toBeUndefined();
   });
 });
+
+const ordenar = {
+  id: 'b11',
+  tipo: 'jogo',
+  jogo: 'ordenar',
+  momento: 'antes',
+  titulo: 'A venda da Sauda',
+  instrucao: 'Põe os passos da venda pela ordem.',
+  xp: 10,
+  xp_extra: 5,
+  dados: {
+    fio: 'Do bom dia ao dinheiro na mão',
+    passos: [
+      { id: 'p1', texto: 'Cumprimenta o cliente' },
+      { id: 'p2', texto: 'Pergunta para que é que ele precisa' },
+      { id: 'p3', texto: 'Fecha com uma pergunta' },
+    ],
+  },
+};
+
+describe('jogo de ordenar', () => {
+  it('lê a missão e depois cada passo, um clipe por carta', () => {
+    const p = pedacosNarraveis(aula([ordenar]));
+    expect(p.map((x) => x.chave)).toEqual(['b11.mp3', 'b11-p1.mp3', 'b11-p2.mp3', 'b11-p3.mp3']);
+    expect(p[2].texto).toBe('Pergunta para que é que ele precisa');
+    expect(p[2].rotulo).toBe('Jogo, passo 2');
+  });
+
+  it('a voz de um passo guarda-se dentro do passo', () => {
+    const nova = definirNarracao(aula([ordenar]), 'b11-p3.mp3', 'b11-p3.mp3');
+    const b = nova.blocos[0] as unknown as { dados: { passos: { narracao?: string }[] } };
+    expect(b.dados.passos[2].narracao).toBe('b11-p3.mp3');
+    expect(b.dados.passos[0].narracao).toBeUndefined();
+  });
+});
