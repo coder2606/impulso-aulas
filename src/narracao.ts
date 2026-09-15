@@ -134,6 +134,20 @@ function pedacosDoBloco(bloco: Bloco): PedacoNarravel[] {
       ];
     }
 
+    if (bloco.jogo === 'achar-erro') {
+      // A cena inteira nao se le de uma vez: sao linhas soltas, e quem ouve
+      // precisa de as poder repetir uma a uma enquanto procura o que esta mal.
+      return [
+        missao,
+        ...bloco.dados.itens.map((i, n) => ({
+          chave: `${bloco.id}-${i.id}.mp3`,
+          rotulo: `Jogo, linha ${n + 1}`,
+          texto: i.texto,
+          narracao: i.narracao,
+        })),
+      ];
+    }
+
     if (bloco.jogo === 'ordenar') {
       // As cartas estao todas a vista ao mesmo tempo, ao contrario dos outros
       // jogos. Cada uma tem a sua voz, que toca quando se lhe toca: quem segue
@@ -329,6 +343,19 @@ export function definirNarracao(
             ...bloco.dados,
             rondas: bloco.dados.rondas.map((r) =>
               `${bloco.id}-${r.id}.mp3` === chave ? { ...r, narracao: valor } : r,
+            ),
+          },
+        };
+      }
+
+      if (bloco.jogo === 'achar-erro') {
+        if (!bloco.dados.itens.some((i) => `${bloco.id}-${i.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            itens: bloco.dados.itens.map((i) =>
+              `${bloco.id}-${i.id}.mp3` === chave ? { ...i, narracao: valor } : i,
             ),
           },
         };

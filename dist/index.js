@@ -9,7 +9,7 @@ var NOMES_DE_FERRAMENTA = [
   "plano-pdf",
   "vitrine"
 ];
-var NOMES_DE_JOGO = ["separar", "decidir", "escada", "ordenar"];
+var NOMES_DE_JOGO = ["separar", "decidir", "escada", "ordenar", "achar-erro"];
 
 // src/validar.ts
 var TIPOS_SUPORTADOS = [
@@ -456,6 +456,7 @@ function validarBloco(b, i, chaves, erros) {
     if (b.jogo === "decidir") validarDecidir(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "escada") validarEscada(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === "ordenar") validarOrdenar(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === "achar-erro") validarAcharErro(dados, `${c}.dados`, chaves, erros);
     return;
   }
   if (!textoNaoVazio(b.medalha)) erros.push({ caminho: `${c}.medalha`, mensagem: "medalha em falta" });
@@ -559,6 +560,41 @@ function validarDecidir(d, c, chaves, erros) {
       erros.push({ caminho: `${cr}.melhor`, mensagem: "melhor tem de ser o id de uma das op\xE7\xF5es" });
     }
   });
+}
+function validarAcharErro(d, c, chaves, erros) {
+  if (!textoNaoVazio(d.cena)) {
+    erros.push({ caminho: `${c}.cena`, mensagem: "cena em falta, por exemplo a pagina do caderno" });
+  }
+  const itens = Array.isArray(d.itens) ? d.itens : [];
+  if (itens.length < 4 || itens.length > 8) {
+    erros.push({ caminho: `${c}.itens`, mensagem: "entre quatro e oito linhas" });
+  }
+  const ids = /* @__PURE__ */ new Set();
+  let errados = 0;
+  let certos = 0;
+  itens.forEach((i, n) => {
+    const ci = `${c}.itens[${n}]`;
+    if (!eObjecto(i) || !textoNaoVazio(i.id) || !textoNaoVazio(i.texto)) {
+      erros.push({ caminho: ci, mensagem: "a linha precisa de id e texto" });
+      return;
+    }
+    if (ids.has(i.id)) erros.push({ caminho: `${ci}.id`, mensagem: `id repetido: ${i.id}` });
+    ids.add(i.id);
+    if (typeof i.errado !== "boolean") {
+      erros.push({ caminho: `${ci}.errado`, mensagem: "errado tem de ser verdadeiro ou falso" });
+    } else if (i.errado) errados += 1;
+    else certos += 1;
+    if (i.porque !== void 0 && !textoNaoVazio(i.porque)) {
+      erros.push({ caminho: `${ci}.porque`, mensagem: "se o porque existir, nao pode ser vazio" });
+    }
+    validarNarracao(i.narracao, `${ci}.narracao`, chaves, erros);
+  });
+  if (errados === 0) {
+    erros.push({ caminho: `${c}.itens`, mensagem: "tem de haver ao menos uma linha errada" });
+  }
+  if (certos === 0) {
+    erros.push({ caminho: `${c}.itens`, mensagem: "tem de haver ao menos uma linha certa" });
+  }
 }
 function validarOrdenar(d, c, chaves, erros) {
   const passos = Array.isArray(d.passos) ? d.passos : [];
@@ -743,6 +779,19 @@ function corrigirOrdenar(dados, ordem, erros) {
     semFalhas: erros === 0 && acertos === dados.passos.length
   };
 }
+function errosDaCena(dados) {
+  return dados.itens.filter((i) => i.errado).map((i) => i.id);
+}
+function corrigirAcharErro(dados, marcados, erros) {
+  const errados = errosDaCena(dados);
+  const acertos = errados.filter((id) => marcados.includes(id)).length;
+  return {
+    acertos,
+    total: errados.length,
+    erros,
+    semFalhas: erros === 0 && acertos === errados.length
+  };
+}
 function baralharPassos(dados, sorte = Math.random) {
   const fila = [...dados.passos];
   for (let i = fila.length - 1; i > 0; i -= 1) {
@@ -842,6 +891,17 @@ function pedacosDoBloco(bloco) {
           rotulo: `Jogo, ronda ${i + 1}`,
           texto: `${r.situacao} ${r.pergunta}`,
           narracao: r.narracao
+        }))
+      ];
+    }
+    if (bloco.jogo === "achar-erro") {
+      return [
+        missao,
+        ...bloco.dados.itens.map((i, n) => ({
+          chave: `${bloco.id}-${i.id}.mp3`,
+          rotulo: `Jogo, linha ${n + 1}`,
+          texto: i.texto,
+          narracao: i.narracao
         }))
       ];
     }
@@ -1005,6 +1065,18 @@ function definirNarracao(aula, chave, valor) {
           }
         };
       }
+      if (bloco.jogo === "achar-erro") {
+        if (!bloco.dados.itens.some((i) => `${bloco.id}-${i.id}.mp3` === chave)) return bloco;
+        return {
+          ...bloco,
+          dados: {
+            ...bloco.dados,
+            itens: bloco.dados.itens.map(
+              (i) => `${bloco.id}-${i.id}.mp3` === chave ? { ...i, narracao: valor } : i
+            )
+          }
+        };
+      }
       if (bloco.jogo === "ordenar") {
         if (!bloco.dados.passos.some((p) => `${bloco.id}-${p.id}.mp3` === chave)) return bloco;
         return {
@@ -1095,11 +1167,13 @@ export {
   baralharPassos,
   blocosObrigatorios,
   cartaoCerto,
+  corrigirAcharErro,
   corrigirDecidir,
   corrigirEscada,
   corrigirOrdenar,
   corrigirSeparar,
   definirNarracao,
+  errosDaCena,
   idDaLinhaDaTabela,
   mediaPorChave,
   passoCerto,

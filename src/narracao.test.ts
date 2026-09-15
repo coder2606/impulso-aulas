@@ -496,3 +496,44 @@ describe('jogo de ordenar', () => {
     expect(b.dados.passos[0].narracao).toBeUndefined();
   });
 });
+
+const cena = {
+  id: 'b12',
+  tipo: 'jogo',
+  jogo: 'achar-erro',
+  momento: 'depois',
+  titulo: 'O caderno da Nhelete',
+  instrucao: 'Acha o que está mal nesta página.',
+  xp: 20,
+  xp_extra: 10,
+  dados: {
+    cena: 'A página de segunda-feira',
+    itens: [
+      { id: 'i1', texto: 'Vendi 30 bolos, 300 meticais', errado: false },
+      { id: 'i2', texto: 'Tirei 200 da caixa para a escola', errado: true },
+      { id: 'i3', texto: 'Comprei farinha, 150 meticais', errado: false },
+      { id: 'i4', texto: 'Vendi à vizinha, depois escrevo', errado: true },
+    ],
+  },
+};
+
+describe('jogo de achar o erro', () => {
+  it('lê a missão e depois cada linha da cena, uma a uma', () => {
+    const p = pedacosNarraveis(aula([cena]));
+    expect(p.map((x) => x.chave)).toEqual([
+      'b12.mp3',
+      'b12-i1.mp3',
+      'b12-i2.mp3',
+      'b12-i3.mp3',
+      'b12-i4.mp3',
+    ]);
+    expect(p[2].rotulo).toBe('Jogo, linha 2');
+  });
+
+  it('a voz de uma linha guarda-se dentro da linha', () => {
+    const nova = definirNarracao(aula([cena]), 'b12-i4.mp3', 'b12-i4.mp3');
+    const b = nova.blocos[0] as unknown as { dados: { itens: { narracao?: string }[] } };
+    expect(b.dados.itens[3].narracao).toBe('b12-i4.mp3');
+    expect(b.dados.itens[0].narracao).toBeUndefined();
+  });
+});

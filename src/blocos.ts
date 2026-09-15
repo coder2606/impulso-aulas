@@ -205,7 +205,7 @@ export type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-export const NOMES_DE_JOGO = ['separar', 'decidir', 'escada', 'ordenar'] as const;
+export const NOMES_DE_JOGO = ['separar', 'decidir', 'escada', 'ordenar', 'achar-erro'] as const;
 export type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 
 export type GrupoSeparar = { id: string; rotulo: string };
@@ -323,12 +323,36 @@ type BlocoJogoBase = {
 export type BlocoJogoSeparar = BlocoJogoBase & { jogo: 'separar'; dados: DadosSeparar };
 export type BlocoJogoDecidir = BlocoJogoBase & { jogo: 'decidir'; dados: DadosDecidir };
 export type BlocoJogoEscada = BlocoJogoBase & { jogo: 'escada'; dados: DadosEscada };
+export type ItemCena = {
+  id: string;
+  texto: string;
+  /** Se esta linha da cena é das que estão mal. É o que o jovem tem de apanhar. */
+  errado: boolean;
+  /** O que está mal aqui, ou porque é que está bem. Só se lê depois da lição. */
+  porque?: string;
+  /** O clipe que lê esta linha, quando se toca nela. */
+  narracao?: string;
+};
+export type DadosAcharErro = {
+  /** O que se está a olhar. Por exemplo, «A página de segunda-feira do caderno da Nhelete». */
+  cena: string;
+  /**
+   * As linhas da cena, pela ordem por que se leem.
+   *
+   * Tem de haver erradas e certas: uma cena só com erros treina a carregar em
+   * tudo, e uma sem nenhum não tem jogo nenhum. O validador exige as duas.
+   */
+  itens: ItemCena[];
+};
+
 export type BlocoJogoOrdenar = BlocoJogoBase & { jogo: 'ordenar'; dados: DadosOrdenar };
+export type BlocoJogoAcharErro = BlocoJogoBase & { jogo: 'achar-erro'; dados: DadosAcharErro };
 export type BlocoJogo =
   | BlocoJogoSeparar
   | BlocoJogoDecidir
   | BlocoJogoEscada
-  | BlocoJogoOrdenar;
+  | BlocoJogoOrdenar
+  | BlocoJogoAcharErro;
 
 export type Bloco =
   | BlocoVideo

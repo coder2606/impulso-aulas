@@ -222,7 +222,7 @@ type BlocoRecompensa = {
  * aqui é a promessa de que existe um leitor que o sabe desenhar. O catálogo das
  * mecânicas por fazer vive na especificação, não aqui.
  */
-declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada", "ordenar"];
+declare const NOMES_DE_JOGO: readonly ["separar", "decidir", "escada", "ordenar", "achar-erro"];
 type NomeDeJogo = (typeof NOMES_DE_JOGO)[number];
 type GrupoSeparar = {
     id: string;
@@ -354,11 +354,36 @@ type BlocoJogoEscada = BlocoJogoBase & {
     jogo: 'escada';
     dados: DadosEscada;
 };
+type ItemCena = {
+    id: string;
+    texto: string;
+    /** Se esta linha da cena é das que estão mal. É o que o jovem tem de apanhar. */
+    errado: boolean;
+    /** O que está mal aqui, ou porque é que está bem. Só se lê depois da lição. */
+    porque?: string;
+    /** O clipe que lê esta linha, quando se toca nela. */
+    narracao?: string;
+};
+type DadosAcharErro = {
+    /** O que se está a olhar. Por exemplo, «A página de segunda-feira do caderno da Nhelete». */
+    cena: string;
+    /**
+     * As linhas da cena, pela ordem por que se leem.
+     *
+     * Tem de haver erradas e certas: uma cena só com erros treina a carregar em
+     * tudo, e uma sem nenhum não tem jogo nenhum. O validador exige as duas.
+     */
+    itens: ItemCena[];
+};
 type BlocoJogoOrdenar = BlocoJogoBase & {
     jogo: 'ordenar';
     dados: DadosOrdenar;
 };
-type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada | BlocoJogoOrdenar;
+type BlocoJogoAcharErro = BlocoJogoBase & {
+    jogo: 'achar-erro';
+    dados: DadosAcharErro;
+};
+type BlocoJogo = BlocoJogoSeparar | BlocoJogoDecidir | BlocoJogoEscada | BlocoJogoOrdenar | BlocoJogoAcharErro;
 type Bloco = BlocoVideo | BlocoCarrossel | BlocoPassos | BlocoDesafio | BlocoChecklist | BlocoAudioSlides | BlocoTabela | BlocoAutoavaliacao | BlocoQuiz | BlocoFormulario | BlocoFerramenta | BlocoJogo | BlocoRecompensa;
 type ConteudoAula = {
     versao: 1;
@@ -453,6 +478,17 @@ type Ordem = string[];
 /** Este passo e mesmo o que falta nesta posicao da fila? */
 declare function passoCerto(dados: DadosOrdenar, posicao: number, passoId: string): boolean;
 declare function corrigirOrdenar(dados: DadosOrdenar, ordem: Ordem, erros: number): ResultadoJogo;
+/** As linhas da cena que estao mesmo mal. */
+declare function errosDaCena(dados: DadosAcharErro): string[];
+/**
+ * A conta de achar o erro.
+ *
+ * O total sao os erros que a cena tem, e nao as linhas todas: quem apanha os
+ * tres erros de uma pagina de seis linhas acertou o jogo inteiro, ainda que
+ * tenha deixado tres linhas por tocar. Carregar numa linha que esta bem e um
+ * erro do jogador, e conta-se por fora, como nos outros jogos.
+ */
+declare function corrigirAcharErro(dados: DadosAcharErro, marcados: string[], erros: number): ResultadoJogo;
 /**
  * As cartas por colocar, fora da ordem.
  *
@@ -542,4 +578,4 @@ declare function definirNarracao(aula: ConteudoAula, chave: string, valor: strin
  */
 declare function versaoDoContrato(): number;
 
-export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoOrdenar, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosDecidir, type DadosEscada, type DadosOrdenar, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Ordem, type Passo, type PassoOrdenar, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, baralharPassos, blocosObrigatorios, cartaoCerto, corrigirDecidir, corrigirEscada, corrigirOrdenar, corrigirSeparar, definirNarracao, idDaLinhaDaTabela, mediaPorChave, passoCerto, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };
+export { type Bloco, type BlocoAudioSlides, type BlocoAutoavaliacao, type BlocoCarrossel, type BlocoChecklist, type BlocoDesafio, type BlocoFerramenta, type BlocoFormulario, type BlocoJogo, type BlocoJogoAcharErro, type BlocoJogoDecidir, type BlocoJogoEscada, type BlocoJogoOrdenar, type BlocoJogoSeparar, type BlocoPassos, type BlocoQuiz, type BlocoRecompensa, type BlocoTabela, type BlocoVideo, type CampoFormulario, type CartaoCarrossel, type CartaoSeparar, type Colocacoes, type ConteudoAula, type DadosAcharErro, type DadosDecidir, type DadosEscada, type DadosOrdenar, type DadosSeparar, type DegrauEscada, type ErroValidacao, type Escolhas, type GrupoSeparar, type ItemCena, type ItemChecklist, type MediaRef, NOMES_DE_FERRAMENTA, NOMES_DE_JOGO, type NomeDeFerramenta, type NomeDeJogo, type OpcaoDecidir, type OpcaoEscada, type OpcaoQuiz, type Ordem, type Passo, type PassoOrdenar, type PedacoNarravel, type PerguntaAutoavaliacao, type PerguntaQuiz, REGRA_DO_MOMENTO, type ResultadoJogo, type ResultadoValidacao, type RondaDecidir, type SlideAudio, aberturaDoJogo, bancaDaEscada, baralharPassos, blocosObrigatorios, cartaoCerto, corrigirAcharErro, corrigirDecidir, corrigirEscada, corrigirOrdenar, corrigirSeparar, definirNarracao, errosDaCena, idDaLinhaDaTabela, mediaPorChave, passoCerto, pedacosNarraveis, validarAula, versaoDoContrato, xpDoJogo };

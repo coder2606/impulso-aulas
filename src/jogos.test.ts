@@ -3,7 +3,9 @@ import {
   aberturaDoJogo,
   bancaDaEscada,
   baralharPassos,
+  corrigirAcharErro,
   corrigirOrdenar,
+  errosDaCena,
   passoCerto,
   corrigirDecidir,
   corrigirEscada,
@@ -13,6 +15,7 @@ import {
 } from './jogos';
 import type {
   BlocoJogo,
+  DadosAcharErro,
   DadosDecidir,
   DadosEscada,
   DadosOrdenar,
@@ -306,5 +309,40 @@ describe('baralharPassos', () => {
   it('não mexe nos dados da aula', () => {
     baralharPassos(ORDENAR, () => 0.9);
     expect(ORDENAR.passos.map((p) => p.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
+  });
+});
+
+const CENA: DadosAcharErro = {
+  cena: 'A página de segunda-feira do caderno da Nhelete',
+  itens: [
+    { id: 'i1', texto: 'Vendi 30 bolos, 300 meticais', errado: false },
+    { id: 'i2', texto: 'Tirei 200 da caixa para a escola do filho', errado: true },
+    { id: 'i3', texto: 'Comprei farinha, 150 meticais', errado: false },
+    { id: 'i4', texto: 'Vendi à vizinha, depois escrevo', errado: true },
+  ],
+};
+
+describe('corrigirAcharErro', () => {
+  it('conta os erros apanhados, e não as linhas todas', () => {
+    const r = corrigirAcharErro(CENA, ['i2', 'i4'], 0);
+    expect(r).toEqual({ acertos: 2, total: 2, erros: 0, semFalhas: true });
+  });
+
+  it('uma linha certa marcada não conta como acerto', () => {
+    const r = corrigirAcharErro(CENA, ['i1', 'i2'], 1);
+    expect(r.acertos).toBe(1);
+    expect(r.semFalhas).toBe(false);
+  });
+
+  it('quem não marca nada acaba a zero, e não a menos', () => {
+    expect(corrigirAcharErro(CENA, [], 0).acertos).toBe(0);
+  });
+
+  it('apanhar tudo com tropeções pelo caminho não é sem falhas', () => {
+    expect(corrigirAcharErro(CENA, ['i2', 'i4'], 1).semFalhas).toBe(false);
+  });
+
+  it('diz quais são as linhas erradas, pela ordem da cena', () => {
+    expect(errosDaCena(CENA)).toEqual(['i2', 'i4']);
   });
 });

@@ -533,6 +533,7 @@ function validarBloco(b: unknown, i: number, chaves: Set<string>, erros: ErroVal
     if (b.jogo === 'decidir') validarDecidir(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'escada') validarEscada(dados, `${c}.dados`, chaves, erros);
     if (b.jogo === 'ordenar') validarOrdenar(dados, `${c}.dados`, chaves, erros);
+    if (b.jogo === 'achar-erro') validarAcharErro(dados, `${c}.dados`, chaves, erros);
     return;
   }
 
@@ -675,6 +676,59 @@ function validarDecidir(
       erros.push({ caminho: `${cr}.melhor`, mensagem: 'melhor tem de ser o id de uma das opções' });
     }
   });
+}
+
+/**
+ * O jogo de achar o erro: uma cena com linhas certas e linhas erradas.
+ *
+ * Uma cena sem nenhuma linha errada nao tem jogo nenhum, e uma so com linhas
+ * erradas ensina a carregar em tudo, que e o contrario do que se quer treinar.
+ * Por isso exigem-se as duas coisas.
+ */
+function validarAcharErro(
+  d: Record<string, unknown>,
+  c: string,
+  chaves: Set<string>,
+  erros: ErroValidacao[],
+): void {
+  if (!textoNaoVazio(d.cena)) {
+    erros.push({ caminho: `${c}.cena`, mensagem: 'cena em falta, por exemplo a pagina do caderno' });
+  }
+
+  const itens = Array.isArray(d.itens) ? d.itens : [];
+  if (itens.length < 4 || itens.length > 8) {
+    erros.push({ caminho: `${c}.itens`, mensagem: 'entre quatro e oito linhas' });
+  }
+
+  const ids = new Set<string>();
+  let errados = 0;
+  let certos = 0;
+  itens.forEach((i, n) => {
+    const ci = `${c}.itens[${n}]`;
+    if (!eObjecto(i) || !textoNaoVazio(i.id) || !textoNaoVazio(i.texto)) {
+      erros.push({ caminho: ci, mensagem: 'a linha precisa de id e texto' });
+      return;
+    }
+    if (ids.has(i.id)) erros.push({ caminho: `${ci}.id`, mensagem: `id repetido: ${i.id}` });
+    ids.add(i.id);
+
+    if (typeof i.errado !== 'boolean') {
+      erros.push({ caminho: `${ci}.errado`, mensagem: 'errado tem de ser verdadeiro ou falso' });
+    } else if (i.errado) errados += 1;
+    else certos += 1;
+
+    if (i.porque !== undefined && !textoNaoVazio(i.porque)) {
+      erros.push({ caminho: `${ci}.porque`, mensagem: 'se o porque existir, nao pode ser vazio' });
+    }
+    validarNarracao(i.narracao, `${ci}.narracao`, chaves, erros);
+  });
+
+  if (errados === 0) {
+    erros.push({ caminho: `${c}.itens`, mensagem: 'tem de haver ao menos uma linha errada' });
+  }
+  if (certos === 0) {
+    erros.push({ caminho: `${c}.itens`, mensagem: 'tem de haver ao menos uma linha certa' });
+  }
 }
 
 /**

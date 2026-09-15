@@ -1,5 +1,6 @@
 import type {
   BlocoJogo,
+  DadosAcharErro,
   DadosDecidir,
   DadosEscada,
   DadosOrdenar,
@@ -141,6 +142,34 @@ export function corrigirOrdenar(
     total: dados.passos.length,
     erros,
     semFalhas: erros === 0 && acertos === dados.passos.length,
+  };
+}
+
+/** As linhas da cena que estao mesmo mal. */
+export function errosDaCena(dados: DadosAcharErro): string[] {
+  return dados.itens.filter((i) => i.errado).map((i) => i.id);
+}
+
+/**
+ * A conta de achar o erro.
+ *
+ * O total sao os erros que a cena tem, e nao as linhas todas: quem apanha os
+ * tres erros de uma pagina de seis linhas acertou o jogo inteiro, ainda que
+ * tenha deixado tres linhas por tocar. Carregar numa linha que esta bem e um
+ * erro do jogador, e conta-se por fora, como nos outros jogos.
+ */
+export function corrigirAcharErro(
+  dados: DadosAcharErro,
+  marcados: string[],
+  erros: number,
+): ResultadoJogo {
+  const errados = errosDaCena(dados);
+  const acertos = errados.filter((id) => marcados.includes(id)).length;
+  return {
+    acertos,
+    total: errados.length,
+    erros,
+    semFalhas: erros === 0 && acertos === errados.length,
   };
 }
 

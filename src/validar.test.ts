@@ -1076,4 +1076,61 @@ describe('bloco jogo', () => {
     (b.dados.passos[0] as Record<string, unknown>).narracao = 'nao-existe.mp3';
     expect(comBloco(b).ok).toBe(false);
   });
+
+  const cena = () => ({
+    id: 'j5',
+    tipo: 'jogo',
+    jogo: 'achar-erro',
+    momento: 'depois',
+    titulo: 'O caderno da Nhelete',
+    xp: 20,
+    xp_extra: 10,
+    dados: {
+      cena: 'A pagina de segunda-feira do caderno da Nhelete',
+      itens: [
+        { id: 'i1', texto: 'Vendi 30 bolos, 300 meticais', errado: false },
+        { id: 'i2', texto: 'Tirei 200 da caixa para a escola', errado: true, porque: 'Sai do salario.' },
+        { id: 'i3', texto: 'Comprei farinha, 150 meticais', errado: false },
+        { id: 'i4', texto: 'Vendi a vizinha, depois escrevo', errado: true },
+      ],
+    },
+  });
+
+  it('aceita uma cena bem formada', () => {
+    expect(comBloco(cena()).ok).toBe(true);
+  });
+
+  it('recusa uma cena sem nenhuma linha errada, que nao teria jogo nenhum', () => {
+    const b = cena();
+    b.dados.itens = b.dados.itens.map((i) => ({ ...i, errado: false }));
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].mensagem).toContain('errada');
+  });
+
+  it('recusa uma cena so com linhas erradas, que ensina a carregar em tudo', () => {
+    const b = cena();
+    b.dados.itens = b.dados.itens.map((i) => ({ ...i, errado: true }));
+    const r = comBloco(b);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.erros[0].mensagem).toContain('certa');
+  });
+
+  it('recusa uma cena com tres linhas', () => {
+    const b = cena();
+    b.dados.itens = b.dados.itens.slice(0, 3);
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma linha sem dizer se esta errada', () => {
+    const b = cena();
+    delete (b.dados.itens[0] as Record<string, unknown>).errado;
+    expect(comBloco(b).ok).toBe(false);
+  });
+
+  it('recusa uma cena sem nome', () => {
+    const b = cena();
+    b.dados.cena = '';
+    expect(comBloco(b).ok).toBe(false);
+  });
 });
